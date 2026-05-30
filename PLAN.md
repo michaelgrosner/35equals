@@ -428,7 +428,7 @@ for them.
    a non-virtualized table of all fields. Detail panel scaffold.
 4. ✅ **M4 — Production grid.** TanStack Table + Virtual, default columns,
    column settings, persistence, sort.
-5. **M5 — Filters.** Per-column + global regex, debounced, in-worker.
+5. ✅ **M5 — Filters.** Per-column + global regex, debounced, in-worker.
 6. **M6 — File input.** Drop zone, file picker, streaming reads,
    progressive population.
 7. **M7 — Polish.** Empty / single-message states, warnings UI, copy raw,

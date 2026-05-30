@@ -17,7 +17,8 @@ const ROW_HEIGHT = 28;
 const ROW_HEIGHT_PX = '28px';
 
 export function MessageGrid() {
-  const { messages, selectedIndex, setSelectedIndex } = useMessagesStore();
+  const { messages, filteredIndices, selectedIndex, setSelectedIndex } =
+    useMessagesStore();
   const { columns: colSettings, setColumnVisible } = useSettingsStore();
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -57,8 +58,16 @@ export function MessageGrid() {
     }
   }
 
+  // Apply filteredIndices: when set, show only matching rows in index order
+  const tableData: GridRow[] =
+    filteredIndices !== null
+      ? Array.from(filteredIndices, (i) => messages[i]).filter(
+          (m): m is GridRow => m !== undefined
+        )
+      : messages;
+
   const table = useReactTable<GridRow>({
-    data: messages,
+    data: tableData,
     columns: columnDefs,
     state: { sorting },
     onSortingChange: setSorting,

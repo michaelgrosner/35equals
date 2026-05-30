@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { InputPanel } from '@/components/InputPanel';
+import { FilterBar } from '@/components/FilterBar';
 import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
 import { ColumnSettings } from '@/components/ColumnSettings';
@@ -66,6 +67,9 @@ export function App() {
           <>
             {/* Collapsed input strip */}
             <InputPanel onParse={parse} collapsed />
+
+            {/* Filter bar */}
+            <FilterBar />
 
             {/* Grid + detail pane with resizable split */}
             <div ref={containerRef} className="flex flex-1 overflow-hidden">
