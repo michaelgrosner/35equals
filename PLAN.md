@@ -422,7 +422,7 @@ for them.
 1. ✅ **M1 — Skeleton (1 PR).** Vite + React + TS + Tailwind + shadcn
    bootstrapped. Empty shell with theme toggle. CI + Cloudflare Pages
    wired up.
-2. **M2 — Parser core.** `tokenize` + `parse` + `detect` + dictionary
+2. ✅ **M2 — Parser core.** `tokenize` + `parse` + `detect` + dictionary
    build step. Full parser test suite. No UI yet.
 3. **M3 — Worker + minimal grid.** Worker wired, paste → parse → render
    a non-virtualized table of all fields. Detail panel scaffold.
