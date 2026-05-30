@@ -426,7 +426,7 @@ for them.
    build step. Full parser test suite. No UI yet.
 3. ✅ **M3 — Worker + minimal grid.** Worker wired, paste → parse → render
    a non-virtualized table of all fields. Detail panel scaffold.
-4. **M4 — Production grid.** TanStack Table + Virtual, default columns,
+4. ✅ **M4 — Production grid.** TanStack Table + Virtual, default columns,
    column settings, persistence, sort.
 5. **M5 — Filters.** Per-column + global regex, debounced, in-worker.
 6. **M6 — File input.** Drop zone, file picker, streaming reads,

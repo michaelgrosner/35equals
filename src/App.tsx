@@ -1,17 +1,50 @@
+import { useRef, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { InputPanel } from '@/components/InputPanel';
 import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
+import { ColumnSettings } from '@/components/ColumnSettings';
 import { useParserWorker } from '@/worker/useParserWorker';
 import { useMessagesStore } from '@/state/messages';
+import { useSettingsStore } from '@/state/settings';
 
 export function App() {
   const { parse } = useParserWorker();
   const { parseState, messages } = useMessagesStore();
+  const { splitRatio, setSplitRatio } = useSettingsStore();
+
+  const isDragging = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const isReady = parseState === 'ready' && messages.length > 0;
   const isParsing = parseState === 'parsing';
+
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDragging.current = true;
+
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!isDragging.current) return;
+        const container = containerRef.current;
+        if (container === null) return;
+        const rect = container.getBoundingClientRect();
+        const ratio = ((ev.clientX - rect.left) / rect.width) * 100;
+        setSplitRatio(Math.min(85, Math.max(15, ratio)));
+      };
+
+      const onMouseUp = () => {
+        isDragging.current = false;
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    },
+    [setSplitRatio]
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -21,7 +54,8 @@ export function App() {
         <span className="ml-2 text-xs text-muted-foreground font-mono">
           FIX protocol log browser
         </span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {isReady && <ColumnSettings />}
           <ThemeToggle />
         </div>
       </header>
@@ -33,12 +67,25 @@ export function App() {
             {/* Collapsed input strip */}
             <InputPanel onParse={parse} collapsed />
 
-            {/* Grid + detail pane */}
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex w-[65%] flex-col overflow-auto border-r">
+            {/* Grid + detail pane with resizable split */}
+            <div ref={containerRef} className="flex flex-1 overflow-hidden">
+              <div
+                className="flex flex-col overflow-hidden border-r"
+                style={{ width: `${String(splitRatio)}%` }}
+              >
                 <MessageGrid />
               </div>
-              <div className="flex w-[35%] flex-col overflow-hidden">
+
+              {/* Drag handle */}
+              <div
+                className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
+                onMouseDown={handleDragStart}
+              />
+
+              <div
+                className="flex flex-col overflow-hidden"
+                style={{ width: `${String(100 - splitRatio)}%` }}
+              >
                 <DetailPanel />
               </div>
             </div>
