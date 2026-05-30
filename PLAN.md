@@ -419,7 +419,7 @@ for them.
 
 ## 12. Milestones
 
-1. **M1 — Skeleton (1 PR).** Vite + React + TS + Tailwind + shadcn
+1. ✅ **M1 — Skeleton (1 PR).** Vite + React + TS + Tailwind + shadcn
    bootstrapped. Empty shell with theme toggle. CI + Cloudflare Pages
    wired up.
 2. **M2 — Parser core.** `tokenize` + `parse` + `detect` + dictionary
