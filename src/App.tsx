@@ -6,12 +6,13 @@ import { FilterBar } from '@/components/FilterBar';
 import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
 import { ColumnSettings } from '@/components/ColumnSettings';
+import { DropZone } from '@/components/DropZone';
 import { useParserWorker } from '@/worker/useParserWorker';
 import { useMessagesStore } from '@/state/messages';
 import { useSettingsStore } from '@/state/settings';
 
 export function App() {
-  const { parse } = useParserWorker();
+  const { parse, parseFile } = useParserWorker();
   const { parseState, messages } = useMessagesStore();
   const { splitRatio, setSplitRatio } = useSettingsStore();
 
@@ -49,6 +50,9 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Full-window drag-and-drop overlay */}
+      <DropZone onFileDrop={parseFile} />
+
       {/* Top bar */}
       <header className="sticky top-0 z-50 flex h-12 items-center border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <span className="text-base font-bold tracking-tight">FIXate</span>
@@ -66,7 +70,7 @@ export function App() {
         {isReady ? (
           <>
             {/* Collapsed input strip */}
-            <InputPanel onParse={parse} collapsed />
+            <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
 
             {/* Filter bar */}
             <FilterBar />
@@ -97,7 +101,7 @@ export function App() {
         ) : (
           /* Idle / parsing / error: centred input */
           <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-            <InputPanel onParse={parse} />
+            <InputPanel onParse={parse} onParseFile={parseFile} />
           </div>
         )}
 

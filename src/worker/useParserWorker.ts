@@ -21,7 +21,7 @@ export function useParserWorker() {
   const workerRef = useRef<Worker | null>(null);
   const apiRef = useRef<Comlink.Remote<WorkerApi> | null>(null);
 
-  const { setMessages, setParseState, setError, setFilteredIndices } =
+  const { setMessages, setParseState, setParseProgress, setError, setFilteredIndices } =
     useMessagesStore();
 
   useEffect(() => {
@@ -59,6 +59,29 @@ export function useParserWorker() {
     [setMessages, setParseState, setError]
   );
 
+  const parseFile = useCallback(
+    async (file: File): Promise<void> => {
+      const api = apiRef.current;
+      if (api === null) return;
+
+      setParseState('parsing');
+      setParseProgress(0);
+      try {
+        const text = await file.text();
+        setParseProgress(50);
+        const transferable = await api.parse(text);
+        const messages = transferable.map(deserialize);
+        setMessages(messages);
+        setParseState('ready');
+        setParseProgress(100);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'File read failed';
+        setError(msg);
+      }
+    },
+    [setMessages, setParseState, setParseProgress, setError]
+  );
+
   const filter = useCallback(
     async (args: FilterArgs): Promise<void> => {
       const api = apiRef.current;
@@ -74,5 +97,5 @@ export function useParserWorker() {
     [setFilteredIndices]
   );
 
-  return { parse, filter };
+  return { parse, parseFile, filter };
 }

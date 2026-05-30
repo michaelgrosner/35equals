@@ -1,20 +1,22 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMessagesStore } from '@/state/messages';
 
 interface InputPanelProps {
   onParse: (text: string) => Promise<void>;
+  onParseFile?: (file: File) => Promise<void>;
   /** When true, collapses to a thin strip showing message count + clear. */
   collapsed?: boolean;
 }
 
 const DEBOUNCE_MS = 300;
 
-export function InputPanel({ onParse, collapsed = false }: InputPanelProps) {
+export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPanelProps) {
   const [text, setText] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { parseState, messages, clear } = useMessagesStore();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { parseState, parseProgress, messages, clear } = useMessagesStore();
 
   const isParsing = parseState === 'parsing';
 
@@ -54,12 +56,29 @@ export function InputPanel({ onParse, collapsed = false }: InputPanelProps) {
     }
   }, [onParse, text]);
 
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file !== undefined && onParseFile !== undefined) {
+        void onParseFile(file);
+      }
+      // Reset so the same file can be re-opened
+      e.target.value = '';
+    },
+    [onParseFile]
+  );
+
   if (collapsed) {
+    const versions = [...new Set(messages.map((m) => m.version))].join(', ');
+
     return (
       <div className="flex h-10 items-center gap-3 border-b bg-muted/40 px-4">
         <span className="text-sm font-medium">
           {messages.length} message{messages.length !== 1 ? 's' : ''} loaded
         </span>
+        {versions.length > 0 && (
+          <span className="text-xs font-mono text-muted-foreground">{versions}</span>
+        )}
         {isParsing && (
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         )}
@@ -92,6 +111,26 @@ export function InputPanel({ onParse, collapsed = false }: InputPanelProps) {
           {isParsing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Parse
         </Button>
+        {onParseFile !== undefined && (
+          <>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".log,.txt,.fix,text/plain,*/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isParsing}
+              onClick={() => { fileInputRef.current?.click(); }}
+            >
+              <Upload className="mr-1 h-4 w-4" />
+              Open file
+            </Button>
+          </>
+        )}
         {text.length > 0 && (
           <Button variant="ghost" size="sm" onClick={handleClear}>
             <X className="mr-1 h-3 w-3" />
@@ -109,6 +148,14 @@ export function InputPanel({ onParse, collapsed = false }: InputPanelProps) {
           </span>
         )}
       </div>
+      {isParsing && parseProgress > 0 && parseProgress < 100 && (
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${String(parseProgress)}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
