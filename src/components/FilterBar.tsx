@@ -102,6 +102,8 @@ export function FilterBar() {
           onChange={(e) => { setGlobalRegex(e.target.value); }}
           placeholder="filter all fields…"
           spellCheck={false}
+          aria-label="Filter all fields by regex"
+          aria-invalid={!regexValid}
           className={cn(
             'h-6 w-44 rounded border bg-transparent px-2 text-xs font-mono outline-none focus:ring-1',
             regexValid
@@ -132,6 +134,7 @@ export function FilterBar() {
             onChange={(e) => { handleColChange(f.tag, e.target.value); }}
             placeholder="filter…"
             spellCheck={false}
+            aria-label={`Filter by ${TAG_LABELS[f.tag] ?? String(f.tag)}`}
             className="h-6 w-24 rounded border border-border bg-transparent px-2 text-xs font-mono outline-none focus:ring-1 focus:ring-primary"
           />
         </div>

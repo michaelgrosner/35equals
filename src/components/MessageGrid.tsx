@@ -178,6 +178,8 @@ export function MessageGrid() {
             return (
               <div
                 key={row.id}
+                role="row"
+                aria-selected={isSelected}
                 style={{
                   position: 'absolute',
                   top: virtualRow.start,

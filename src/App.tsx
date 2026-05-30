@@ -1,5 +1,5 @@
-import { useRef, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useRef, useCallback, useEffect } from 'react';
+import { Loader2, Info } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { InputPanel } from '@/components/InputPanel';
 import { FilterBar } from '@/components/FilterBar';
@@ -7,13 +7,19 @@ import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
 import { ColumnSettings } from '@/components/ColumnSettings';
 import { DropZone } from '@/components/DropZone';
+import { EmptyState } from '@/components/EmptyState';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
 import { useParserWorker } from '@/worker/useParserWorker';
 import { useMessagesStore } from '@/state/messages';
 import { useSettingsStore } from '@/state/settings';
 
 export function App() {
   const { parse, parseFile } = useParserWorker();
-  const { parseState, messages } = useMessagesStore();
+  const { parseState, messages, setSelectedIndex } = useMessagesStore();
   const { splitRatio, setSplitRatio } = useSettingsStore();
 
   const isDragging = useRef(false);
@@ -21,6 +27,14 @@ export function App() {
 
   const isReady = parseState === 'ready' && messages.length > 0;
   const isParsing = parseState === 'parsing';
+  const isSingleMessage = isReady && messages.length === 1;
+
+  // Auto-select message 0 when there's exactly one message
+  useEffect(() => {
+    if (isSingleMessage) {
+      setSelectedIndex(0);
+    }
+  }, [isSingleMessage, setSelectedIndex]);
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
@@ -60,7 +74,27 @@ export function App() {
           FIX protocol log browser
         </span>
         <div className="ml-auto flex items-center gap-2">
-          {isReady && <ColumnSettings />}
+          {isReady && !isSingleMessage && <ColumnSettings />}
+
+          {/* About popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="About FIXate"
+                title="About FIXate"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 text-sm">
+              <p className="font-semibold mb-1">FIXate</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                All parsing happens in your browser. Nothing is uploaded. No analytics.
+              </p>
+            </PopoverContent>
+          </Popover>
+
           <ThemeToggle />
         </div>
       </header>
@@ -68,47 +102,72 @@ export function App() {
       {/* Main content */}
       <main className="flex flex-1 flex-col overflow-hidden">
         {isReady ? (
-          <>
-            {/* Collapsed input strip */}
-            <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
+          isSingleMessage ? (
+            /* Single-message layout: thin header + full-width detail */
+            <>
+              <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
+              <DetailPanel />
+            </>
+          ) : (
+            /* Multi-message layout: grid + resizable detail pane */
+            <>
+              {/* Collapsed input strip */}
+              <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
 
-            {/* Filter bar */}
-            <FilterBar />
+              {/* Filter bar */}
+              <FilterBar />
 
-            {/* Grid + detail pane with resizable split */}
-            <div ref={containerRef} className="flex flex-1 overflow-hidden">
-              <div
-                className="flex flex-col overflow-hidden border-r"
-                style={{ width: `${String(splitRatio)}%` }}
-              >
-                <MessageGrid />
+              {/* Grid + detail pane with resizable split */}
+              <div ref={containerRef} className="flex flex-1 overflow-hidden" role="group" aria-label="Message grid and detail panel">
+                <div
+                  className="flex flex-col overflow-hidden border-r"
+                  style={{ width: `${String(splitRatio)}%` }}
+                  role="grid"
+                  aria-label="FIX messages grid"
+                >
+                  <MessageGrid />
+                </div>
+
+                {/* Drag handle */}
+                <div
+                  className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
+                  onMouseDown={handleDragStart}
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize panels"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowLeft') {
+                      setSplitRatio(Math.max(15, splitRatio - 2));
+                    } else if (e.key === 'ArrowRight') {
+                      setSplitRatio(Math.min(85, splitRatio + 2));
+                    }
+                  }}
+                />
+
+                <div
+                  className="flex flex-col overflow-hidden"
+                  style={{ width: `${String(100 - splitRatio)}%` }}
+                >
+                  <DetailPanel />
+                </div>
               </div>
-
-              {/* Drag handle */}
-              <div
-                className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
-                onMouseDown={handleDragStart}
-              />
-
-              <div
-                className="flex flex-col overflow-hidden"
-                style={{ width: `${String(100 - splitRatio)}%` }}
-              >
-                <DetailPanel />
-              </div>
-            </div>
-          </>
+            </>
+          )
         ) : (
-          /* Idle / parsing / error: centred input */
-          <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-            <InputPanel onParse={parse} onParseFile={parseFile} />
+          /* Idle / parsing / error: centred input with empty state above */
+          <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 gap-0">
+            <EmptyState />
+            <div className="w-full max-w-2xl">
+              <InputPanel onParse={parse} onParseFile={parseFile} />
+            </div>
           </div>
         )}
 
         {/* Parsing overlay */}
         {isParsing && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/50">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Parsing messages…" />
           </div>
         )}
       </main>

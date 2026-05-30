@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { Loader2, X, Upload } from 'lucide-react';
+import { Loader2, X, Upload, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMessagesStore } from '@/state/messages';
 
@@ -16,9 +16,10 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
   const [text, setText] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { parseState, parseProgress, messages, clear } = useMessagesStore();
+  const { parseState, parseProgress, errorMessage, messages, clear } = useMessagesStore();
 
   const isParsing = parseState === 'parsing';
+  const isError = parseState === 'error';
 
   // Auto-parse with debounce when text changes
   const handleChange = useCallback(
@@ -80,10 +81,10 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
           <span className="text-xs font-mono text-muted-foreground">{versions}</span>
         )}
         {isParsing && (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Parsing…" />
         )}
         <div className="ml-auto">
-          <Button variant="ghost" size="sm" onClick={handleClear}>
+          <Button variant="ghost" size="sm" onClick={handleClear} aria-label="Clear all messages">
             <X className="mr-1 h-3 w-3" />
             Clear
           </Button>
@@ -101,12 +102,23 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
         onChange={handleChange}
         disabled={isParsing}
         spellCheck={false}
+        aria-label="FIX message input"
       />
+
+      {/* Error banner */}
+      {isError && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span>{errorMessage ?? 'Parse error'}</span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <Button
           onClick={handleParse}
           disabled={isParsing || text.trim().length === 0}
           size="sm"
+          aria-label="Parse FIX messages"
         >
           {isParsing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Parse
@@ -119,12 +131,14 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
               accept=".log,.txt,.fix,text/plain,*/*"
               className="hidden"
               onChange={handleFileChange}
+              aria-label="Select a FIX log file"
             />
             <Button
               variant="outline"
               size="sm"
               disabled={isParsing}
               onClick={() => { fileInputRef.current?.click(); }}
+              aria-label="Open a FIX log file"
             >
               <Upload className="mr-1 h-4 w-4" />
               Open file
@@ -132,7 +146,7 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
           </>
         )}
         {text.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={handleClear}>
+          <Button variant="ghost" size="sm" onClick={handleClear} aria-label="Clear input and messages">
             <X className="mr-1 h-3 w-3" />
             Clear
           </Button>
@@ -142,14 +156,16 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
             {messages.length} message{messages.length !== 1 ? 's' : ''}
           </span>
         )}
-        {parseState === 'error' && (
-          <span className="ml-2 text-xs text-destructive">
-            {useMessagesStore.getState().errorMessage ?? 'Parse error'}
-          </span>
-        )}
       </div>
       {isParsing && parseProgress > 0 && parseProgress < 100 && (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={parseProgress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Parse progress"
+        >
           <div
             className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: `${String(parseProgress)}%` }}
