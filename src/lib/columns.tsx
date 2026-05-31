@@ -16,7 +16,7 @@ export type GridRow = ParsedMessage;
 const helper = createColumnHelper<GridRow>();
 
 // Tag -> header name mapping for default visible columns
-const TAG_NAMES: Record<number, string> = {
+export const TAG_NAMES: Record<number, string> = {
   8: 'BeginString',
   35: 'MsgType',
   49: 'SenderCompID',

@@ -26,7 +26,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useMessagesStore } from '@/state/messages';
 import { useSettingsStore } from '@/state/settings';
-import { makeTagColumn, indexColumn, DEFAULT_VISIBLE_TAGS } from '@/lib/columns';
+import { makeTagColumn, indexColumn, DEFAULT_VISIBLE_TAGS, TAG_NAMES } from '@/lib/columns';
 import type { GridRow } from '@/lib/columns';
 import { cn } from '@/lib/utils';
 import { formatValue, type Tone } from '@/lib/format';
@@ -384,6 +384,57 @@ export function MessageGrid() {
     setContextMenu(null);
   }, [contextMenu, setColumnPinned]);
 
+  const fitAllColumns = useCallback(() => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Derive actual fonts from a rendered cell/header if available, else fall back
+    const sampleTh = parentRef.current?.querySelector('th');
+    const sampleTd = parentRef.current?.querySelector('td');
+    const headerFont = sampleTh ? getComputedStyle(sampleTh).font : '600 12px sans-serif';
+    const cellFont = sampleTd ? getComputedStyle(sampleTd).font : '400 12px monospace';
+
+    const HEADER_PAD = 44; // grip(16) + sort arrow(10) + padding(18)
+    const CELL_PAD = 20;   // 8px left + 8px right + 4px buffer
+
+    const newSizing: ColumnSizingState = {};
+
+    for (const tag of tagsToRender) {
+      const id = String(tag);
+
+      // Measure header text (name + tag number)
+      ctx.font = headerFont;
+      const name = TAG_NAMES[tag] ?? `Tag${String(tag)}`;
+      let maxW = ctx.measureText(`${name} ${String(tag)}`).width + HEADER_PAD;
+
+      // Measure every cell value in all displayed messages
+      ctx.font = cellFont;
+      for (const msg of displayedMessages) {
+        const raw = msg.byTag.get(tag) ?? '';
+        if (!raw) continue;
+        const fmt = formatValue(tag, raw);
+        // Chips show "LABEL raw" inline — measure the combined string
+        const display = (fmt.isChip && raw !== fmt.text) ? `${fmt.text} ${raw}` : fmt.text;
+        const w = ctx.measureText(display).width + CELL_PAD;
+        if (w > maxW) maxW = w;
+      }
+
+      newSizing[id] = Math.max(60, Math.min(400, Math.ceil(maxW)));
+    }
+
+    setColumnSizing((prev) => {
+      const merged = { ...prev, ...newSizing };
+      for (const [id, size] of Object.entries(newSizing)) {
+        const tag = parseInt(id, 10);
+        if (!isNaN(tag)) setColumnWidth(tag, size);
+      }
+      return merged;
+    });
+
+    setContextMenu(null);
+  }, [tagsToRender, displayedMessages, setColumnWidth]);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (messages.length === 0) return null;
@@ -547,6 +598,13 @@ export function MessageGrid() {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => { e.stopPropagation(); }}
         >
+          <button
+            className="w-full px-4 py-1.5 text-left hover:bg-muted text-sm"
+            onClick={fitAllColumns}
+          >
+            Resize all to fit
+          </button>
+          <div className="border-t border-border mx-2 my-1" />
           {contextColPinned !== 'left' && (
             <button
               className="w-full px-4 py-1.5 text-left hover:bg-muted text-sm"
