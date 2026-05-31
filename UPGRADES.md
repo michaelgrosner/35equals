@@ -129,7 +129,7 @@ the header, `App.tsx:91`) already exists for app meta. Add a
 "Keyboard shortcuts" section to it — no separate `?` modal. One source
 of truth: the user already knows where the Info icon lives.
 
-## 4. Column resize + drag-reorder + pinning
+## 4. ✅ Column resize + drag-reorder + pinning
 
 Widths and order already persist in settings but the UI is unwired. Add
 native TanStack column-resize handles, DnD reordering on the header row,

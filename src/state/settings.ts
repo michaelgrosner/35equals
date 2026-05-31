@@ -9,6 +9,7 @@ export interface ColumnSetting {
   visible: boolean;
   width: number;
   order: number;
+  pinned?: 'left' | 'right' | null;
 }
 
 interface PersistedSettings {
@@ -38,6 +39,7 @@ interface SettingsStore {
   setColumnVisible: (tag: number, visible: boolean) => void;
   setColumnWidth: (tag: number, width: number) => void;
   setColumnOrder: (orderedTags: number[]) => void;
+  setColumnPinned: (tag: number, pinned: 'left' | 'right' | null) => void;
   setSplitRatio: (ratio: number) => void;
   resetColumns: () => void;
 }
@@ -86,6 +88,17 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
           ? { ...existing, order: i }
           : { tag, visible: true, width: 120, order: i };
       });
+      const next = { ...s, columns };
+      persist(next);
+      return { columns };
+    });
+  },
+
+  setColumnPinned: (tag, pinned) => {
+    set((s) => {
+      const columns = s.columns.map((c) =>
+        c.tag === tag ? { ...c, pinned } : c
+      );
       const next = { ...s, columns };
       persist(next);
       return { columns };
