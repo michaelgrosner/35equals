@@ -1,12 +1,14 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import * as Comlink from 'comlink';
 import { useMessagesStore } from '@/state/messages';
 import type { ParsedMessage, ParsedField, FixVersion } from '@/parser/types';
+import type { FilterTree } from '@/parser/filter/types';
 import type { TransferableMessage } from './parser.worker';
 
 type WorkerApi = {
   parse(text: string): Promise<TransferableMessage[]>;
   getDetail(rawText: string, version: FixVersion): Promise<ParsedField[]>;
+  filter(tree: FilterTree | null, globalRegex?: string): Promise<Uint32Array>;
 };
 
 function deserialize(msg: TransferableMessage): ParsedMessage {
@@ -17,34 +19,27 @@ function deserialize(msg: TransferableMessage): ParsedMessage {
   };
 }
 
-export function useParserWorker() {
-  const workerRef = useRef<Worker | null>(null);
-  const apiRef = useRef<Comlink.Remote<WorkerApi> | null>(null);
+let sharedWorker: Worker | null = null;
+let sharedApi: Comlink.Remote<WorkerApi> | null = null;
 
-  const { setMessages, setParseState, setParseProgress, setError, setFilename } =
-    useMessagesStore();
-
-  useEffect(() => {
-    const worker = new Worker(
+function getSharedWorker() {
+  if (!sharedWorker) {
+    sharedWorker = new Worker(
       new URL('./parser.worker.ts', import.meta.url),
       { type: 'module' }
     );
-    workerRef.current = worker;
-    apiRef.current = Comlink.wrap<WorkerApi>(worker);
+    sharedApi = Comlink.wrap<WorkerApi>(sharedWorker);
+  }
+  return sharedApi!;
+}
 
-    return () => {
-      apiRef.current?.[Comlink.releaseProxy]();
-      worker.terminate();
-      workerRef.current = null;
-      apiRef.current = null;
-    };
-  }, []);
+export function useParserWorker() {
+  const { setMessages, setFilteredIndices, setParseState, setParseProgress, setError, setFilename } =
+    useMessagesStore();
 
   const parse = useCallback(
     async (text: string): Promise<void> => {
-      const api = apiRef.current;
-      if (api === null) return;
-
+      const api = getSharedWorker();
       setFilename(null);
       setParseState('parsing');
       try {
@@ -62,9 +57,7 @@ export function useParserWorker() {
 
   const parseFile = useCallback(
     async (file: File): Promise<void> => {
-      const api = apiRef.current;
-      if (api === null) return;
-
+      const api = getSharedWorker();
       setParseState('parsing');
       setParseProgress(0);
       setFilename(file.name);
@@ -86,12 +79,20 @@ export function useParserWorker() {
 
   const getDetail = useCallback(
     async (rawText: string, version: FixVersion): Promise<ParsedField[]> => {
-      const api = apiRef.current;
-      if (api === null) return [];
+      const api = getSharedWorker();
       return api.getDetail(rawText, version);
     },
     []
   );
 
-  return { parse, parseFile, getDetail };
+  const filter = useCallback(
+    async (tree: FilterTree | null, globalRegex?: string): Promise<void> => {
+      const api = getSharedWorker();
+      const indices = await api.filter(tree, globalRegex);
+      setFilteredIndices(indices);
+    },
+    [setFilteredIndices]
+  );
+
+  return { parse, parseFile, getDetail, filter };
 }

@@ -3,6 +3,8 @@ import { tokenize } from '@/parser/tokenize';
 import { parseMessages } from '@/parser/parse';
 import { loadDictionary } from '@/parser/dictionary';
 import { detectVersion } from '@/parser/detect';
+import { evaluateFilterTree } from '@/parser/filter/evaluate';
+import type { FilterTree } from '@/parser/filter/types';
 import type { DictionaryData, FixVersion, ParsedField, ParsedMessage } from '@/parser/types';
 
 export interface TransferableMessage
@@ -13,6 +15,7 @@ export interface TransferableMessage
 // Retained after parse() so getDetail() can reuse the same dicts without
 // re-loading them from disk on every row click.
 let cachedDictMap: Map<FixVersion, DictionaryData> | null = null;
+let cachedMessages: ParsedMessage[] = [];
 
 function sniffVersions(tokens: ReturnType<typeof tokenize>): Set<FixVersion> {
   const versions = new Set<FixVersion>();
@@ -41,6 +44,7 @@ const api = {
     cachedDictMap = new Map<FixVersion, DictionaryData>(entries);
 
     const parsed = parseMessages(tokens, (v) => cachedDictMap!.get(v) ?? { fields: {}, msgTypes: {} });
+    cachedMessages = parsed;
 
     // Strip `fields` — they're expensive to clone at scale (~6 KB per message).
     // Use getDetail() to fetch fields for a single selected message instead.
@@ -57,6 +61,11 @@ const api = {
     const messages = parseMessages(tokens, (v) => dictMap.get(v) ?? { fields: {}, msgTypes: {} });
     return messages[0]?.fields ?? [];
   },
+
+  filter(tree: FilterTree | null, globalRegex?: string): Uint32Array {
+    return evaluateFilterTree(tree, cachedMessages, globalRegex);
+  }
 };
 
 Comlink.expose(api);
+

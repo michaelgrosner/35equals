@@ -6,6 +6,7 @@ import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
 import { ColumnSettings } from '@/components/ColumnSettings';
 import { DropZone } from '@/components/DropZone';
+import { FilterBar } from '@/components/FilterBar';
 import {
   Popover,
   PopoverTrigger,
@@ -140,6 +141,7 @@ export function App() {
                 role="grid"
                 aria-label="FIX messages grid"
               >
+                <FilterBar />
                 <MessageGrid />
               </div>
 

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,9 +17,18 @@ import { cn } from '@/lib/utils';
 const ROW_HEIGHT = 28;
 
 export function MessageGrid() {
-  const { messages, selectedIndex, setSelectedIndex } =
+  const { messages, filteredIndices, selectedIndex, setSelectedIndex } =
     useMessagesStore();
   const { columns: colSettings, setColumnVisible } = useSettingsStore();
+
+  const displayedMessages = useMemo(() => {
+    if (!filteredIndices) return messages;
+    const result = new Array(filteredIndices.length);
+    for (let i = 0; i < filteredIndices.length; i++) {
+      result[i] = messages[filteredIndices[i]!];
+    }
+    return result;
+  }, [messages, filteredIndices]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [contextMenu, setContextMenu] = useState<{
@@ -54,7 +63,7 @@ export function MessageGrid() {
   }
 
   const table = useReactTable<GridRow>({
-    data: messages,
+    data: displayedMessages,
     columns: columnDefs,
     state: { sorting },
     onSortingChange: setSorting,

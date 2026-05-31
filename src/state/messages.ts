@@ -5,12 +5,14 @@ export type ParseState = 'idle' | 'parsing' | 'ready' | 'error';
 
 interface MessagesStore {
   messages: ParsedMessage[];
+  filteredIndices: Uint32Array | null;
   selectedIndex: number | null;
   parseState: ParseState;
   parseProgress: number;
   errorMessage: string | null;
   filename: string | null;
   setMessages: (msgs: ParsedMessage[]) => void;
+  setFilteredIndices: (indices: Uint32Array | null) => void;
   setSelectedIndex: (i: number | null) => void;
   setParseState: (s: ParseState) => void;
   setParseProgress: (progress: number) => void;
@@ -21,12 +23,14 @@ interface MessagesStore {
 
 export const useMessagesStore = create<MessagesStore>((set) => ({
   messages: [],
+  filteredIndices: null,
   selectedIndex: null,
   parseState: 'idle',
   parseProgress: 0,
   errorMessage: null,
   filename: null,
-  setMessages: (msgs) => { set({ messages: msgs }); },
+  setMessages: (msgs) => { set({ messages: msgs, filteredIndices: null }); },
+  setFilteredIndices: (indices) => { set({ filteredIndices: indices }); },
   setSelectedIndex: (i) => { set({ selectedIndex: i }); },
   setParseState: (s) => { set({ parseState: s }); },
   setParseProgress: (progress) => { set({ parseProgress: progress }); },
@@ -35,6 +39,7 @@ export const useMessagesStore = create<MessagesStore>((set) => ({
   clear: () => {
     set({
       messages: [],
+      filteredIndices: null,
       selectedIndex: null,
       parseState: 'idle',
       parseProgress: 0,
