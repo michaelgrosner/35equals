@@ -15,7 +15,6 @@ import type { GridRow } from '@/lib/columns';
 import { cn } from '@/lib/utils';
 
 const ROW_HEIGHT = 28;
-const ROW_HEIGHT_PX = '28px';
 
 export function MessageGrid() {
   const { messages, selectedIndex, setSelectedIndex } =
@@ -31,38 +30,31 @@ export function MessageGrid() {
 
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Build column setting lookup maps
   const visibilityMap = new Map(colSettings.map((c) => [c.tag, c.visible]));
   const widthMap = new Map(colSettings.map((c) => [c.tag, c.width]));
 
-  // Build the ordered list of visible column defs
   const sortedSettings = [...colSettings].sort((a, b) => a.order - b.order);
   const visibleTagsOrdered = sortedSettings
     .filter((c) => c.visible)
     .map((c) => c.tag);
 
-  // Build column definitions: index col always first, then visible tag cols
   const columnDefs: ColumnDef<GridRow>[] = [
-    { ...indexColumn, size: 60 },
+    { ...indexColumn, size: 48 },
   ];
 
-  // Add tag columns in the settings-defined order; fall back to default order
   const tagsToRender =
     visibleTagsOrdered.length > 0 ? visibleTagsOrdered : [...DEFAULT_VISIBLE_TAGS];
 
   for (const tag of tagsToRender) {
     if (visibilityMap.get(tag) !== false) {
       const col = makeTagColumn(tag) as ColumnDef<GridRow>;
-      const width = widthMap.get(tag) ?? 120;
-      col.size = width;
+      col.size = widthMap.get(tag) ?? 120;
       columnDefs.push(col);
     }
   }
 
-  const tableData: GridRow[] = messages;
-
   const table = useReactTable<GridRow>({
-    data: tableData,
+    data: messages,
     columns: columnDefs,
     state: { sorting },
     onSortingChange: setSorting,
@@ -82,8 +74,12 @@ export function MessageGrid() {
 
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = virtualItems.length > 0 ? (virtualItems[0]?.start ?? 0) : 0;
+  const paddingBottom =
+    virtualItems.length > 0
+      ? totalSize - (virtualItems[virtualItems.length - 1]?.end ?? 0)
+      : 0;
 
-  // Scroll selected row into view
   useEffect(() => {
     if (selectedIndex === null) return;
     const rowIdx = rows.findIndex((r) => r.original.index === selectedIndex);
@@ -92,7 +88,6 @@ export function MessageGrid() {
     }
   }, [selectedIndex, rows, rowVirtualizer]);
 
-  // Close context menu on outside click
   useEffect(() => {
     if (contextMenu === null) return;
     const handle = () => { setContextMenu(null); };
@@ -102,7 +97,7 @@ export function MessageGrid() {
 
   const handleHeaderContextMenu = useCallback(
     (e: React.MouseEvent, colId: string) => {
-      if (colId === '0') return; // index col cannot be hidden
+      if (colId === '0') return;
       e.preventDefault();
       setContextMenu({ x: e.clientX, y: e.clientY, colId });
     },
@@ -118,23 +113,27 @@ export function MessageGrid() {
 
   if (messages.length === 0) return null;
 
+  const colCount = columnDefs.length;
   const headerGroups = table.getHeaderGroups();
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Sticky header */}
-      <div className="overflow-hidden border-b bg-background z-10 flex-shrink-0">
-        <table className="border-collapse table-fixed" style={{ width: 'max-content' }}>
-          <thead>
+      {/* Single scroll container — thead is sticky so header scrolls
+          horizontally with the body, eliminating misalignment. */}
+      <div ref={parentRef} className="flex-1 overflow-auto">
+        <table
+          className="border-collapse"
+          style={{ width: 'max-content', minWidth: '100%' }}
+        >
+          <thead className="sticky top-0 z-10 bg-background">
             {headerGroups.map((hg) => (
-              <tr key={hg.id}>
+              <tr key={hg.id} className="border-b border-border">
                 {hg.headers.map((header) => {
                   const sorted = header.column.getIsSorted();
                   const canSort = header.column.getCanSort();
                   return (
                     <th
                       key={header.id}
-                      style={{ width: header.getSize() }}
                       className="px-2 py-1.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap select-none"
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                       onContextMenu={(e) => { handleHeaderContextMenu(e, header.column.id); }}
@@ -155,79 +154,70 @@ export function MessageGrid() {
               </tr>
             ))}
           </thead>
+          <tbody>
+            {paddingTop > 0 && (
+              <tr>
+                <td colSpan={colCount} style={{ height: paddingTop }} />
+              </tr>
+            )}
+            {virtualItems.map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              if (row === undefined) return null;
+              const isSelected = selectedIndex === row.original.index;
+              return (
+                <tr
+                  key={row.id}
+                  role="row"
+                  aria-selected={isSelected}
+                  style={{ height: ROW_HEIGHT }}
+                  className={cn(
+                    'cursor-pointer border-b border-border transition-colors',
+                    isSelected
+                      ? 'bg-primary/10 hover:bg-primary/15'
+                      : 'hover:bg-muted/50'
+                  )}
+                  onClick={() => {
+                    setSelectedIndex(isSelected ? null : row.original.index);
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const isIndex = cell.column.id === '0';
+                    const displayValue = isIndex
+                      ? String(cell.row.index + 1)
+                      : String(cell.getValue<string | number>() ?? '');
+                    return (
+                      <td
+                        key={cell.id}
+                        style={{
+                          paddingLeft: 8,
+                          paddingRight: 8,
+                          fontSize: '0.75rem',
+                          height: ROW_HEIGHT,
+                          verticalAlign: 'middle',
+                          whiteSpace: 'nowrap',
+                        }}
+                        className={cn(
+                          'font-mono',
+                          isIndex ? 'text-muted-foreground' : ''
+                        )}
+                        title={displayValue}
+                      >
+                        {displayValue}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+            {paddingBottom > 0 && (
+              <tr>
+                <td colSpan={colCount} style={{ height: paddingBottom }} />
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
 
-      {/* Virtualized body */}
-      <div
-        ref={parentRef}
-        className="flex-1 overflow-y-auto overflow-x-auto"
-      >
-        <div style={{ height: totalSize, position: 'relative', width: 'max-content', minWidth: '100%' }}>
-          {virtualItems.map((virtualRow) => {
-            const row = rows[virtualRow.index];
-            if (row === undefined) return null;
-            const isSelected = selectedIndex === row.original.index;
-            return (
-              <div
-                key={row.id}
-                role="row"
-                aria-selected={isSelected}
-                style={{
-                  position: 'absolute',
-                  top: virtualRow.start,
-                  height: ROW_HEIGHT,
-                  display: 'table',
-                  tableLayout: 'fixed',
-                  width: 'max-content',
-                  minWidth: '100%',
-                }}
-                className={cn(
-                  'cursor-pointer border-b border-border transition-colors',
-                  isSelected
-                    ? 'bg-primary/10 hover:bg-primary/15'
-                    : 'hover:bg-muted/50'
-                )}
-                onClick={() => {
-                  setSelectedIndex(isSelected ? null : row.original.index);
-                }}
-              >
-                {row.getVisibleCells().map((cell) => {
-                  const rawValue = cell.getValue<string | number>();
-                  const displayValue = String(rawValue);
-                  const isIndex = cell.column.id === '0';
-                  return (
-                    <div
-                      key={cell.id}
-                      style={{
-                        width: cell.column.getSize(),
-                        display: 'table-cell',
-                        verticalAlign: 'middle',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        paddingLeft: 8,
-                        paddingRight: 8,
-                        fontSize: '0.75rem',
-                        lineHeight: ROW_HEIGHT_PX,
-                      }}
-                      className={cn(
-                        'font-mono',
-                        isIndex ? 'text-muted-foreground' : ''
-                      )}
-                      title={displayValue}
-                    >
-                      {displayValue}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Context menu */}
       {contextMenu !== null && (
         <div
           className="fixed z-50 rounded-md border bg-popover shadow-md py-1 text-sm"

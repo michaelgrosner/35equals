@@ -119,7 +119,7 @@ function cellValue(tag: number, row: GridRow): string {
 
 /** The default ordered list of visible tags (not including index col 0). */
 export const DEFAULT_VISIBLE_TAGS = [
-  8, 35, 49, 56, 52, 34, 11, 37, 17, 55, 54, 38, 44, 40, 59, 39, 150, 6, 14,
+  35, 49, 56, 52, 34, 11, 37, 17, 55, 54, 38, 44, 40, 59, 39, 150, 6, 14,
   151,
 ] as const;
 

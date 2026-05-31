@@ -18,7 +18,7 @@ import { useSettingsStore } from '@/state/settings';
 
 export function App() {
   const { parse, parseFile } = useParserWorker();
-  const { parseState, messages, setSelectedIndex } = useMessagesStore();
+  const { parseState, messages, setSelectedIndex, clear } = useMessagesStore();
   const { splitRatio, setSplitRatio } = useSettingsStore();
 
   const isDragging = useRef(false);
@@ -34,6 +34,20 @@ export function App() {
       setSelectedIndex(0);
     }
   }, [isSingleMessage, setSelectedIndex]);
+
+  // Push a history entry so the back button can clear
+  useEffect(() => {
+    if (isReady) {
+      history.pushState(null, '');
+    }
+  }, [isReady]);
+
+  // Back button clears the session
+  useEffect(() => {
+    const handle = () => { clear(); };
+    window.addEventListener('popstate', handle);
+    return () => { window.removeEventListener('popstate', handle); };
+  }, [clear]);
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {

@@ -3,66 +3,68 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light mode — Catppuccin Latte */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 220 23% 95%;        /* #eff1f5 base */
+    --foreground: 234 16% 35%;        /* #4c4f69 text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 22% 92%;              /* #e6e9ef mantle */
+    --card-foreground: 234 16% 35%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 22% 92%;
+    --popover-foreground: 234 16% 35%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 266 85% 58%;           /* #8839ef mauve */
+    --primary-foreground: 220 23% 95%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 228 11% 83%;         /* #ccd0da surface 0 */
+    --secondary-foreground: 234 16% 35%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 228 11% 83%;
+    --muted-foreground: 233 10% 57%;  /* #8c8fa1 overlay 1 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 228 11% 83%;
+    --accent-foreground: 234 16% 35%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 347 87% 44%;       /* #d20f39 red */
+    --destructive-foreground: 220 23% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 228 11% 77%;            /* #bcc0cc surface 1 */
+    --input: 228 11% 77%;
+    --ring: 277 85% 57%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
   }
 
+  /* Dark mode — Catppuccin Mocha */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 21% 15%;        /* #1e1e2e base */
+    --foreground: 226 64% 88%;        /* #cdd6f4 text */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 21% 12%;              /* #181825 mantle */
+    --card-foreground: 226 64% 88%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 21% 12%;
+    --popover-foreground: 226 64% 88%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 267 84% 81%;           /* #cba6f7 mauve */
+    --primary-foreground: 240 23% 9%; /* #11111b crust */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 237 16% 23%;         /* #313244 surface 0 */
+    --secondary-foreground: 226 64% 88%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 237 16% 23%;
+    --muted-foreground: 228 24% 72%;  /* #a6adc8 subtext 0 */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 237 16% 23%;
+    --accent-foreground: 226 64% 88%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 343 81% 75%;       /* #f38ba8 red */
+    --destructive-foreground: 240 23% 9%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 235 13% 31%;            /* #45475a surface 1 */
+    --input: 237 16% 23%;             /* #313244 surface 0 */
+    --ring: 267 84% 81%;
   }
 }
 
