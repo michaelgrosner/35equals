@@ -117,7 +117,7 @@ function in `lib/format.ts` (already stubbed in PLAN.md §3) used by
 both grid and detail. No re-parsing per render — memoize per
 `(version, tag, raw)` tuple if it shows up in profiles.
 
-## 3. Keyboard navigation across grid + detail
+## 3. ✅ Keyboard navigation across grid + detail
 
 Power users live on the keyboard. Bind `↑/↓` or `j/k` to move row
 selection (scrolling the virtualizer to keep it in view), `Enter` to

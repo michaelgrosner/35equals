@@ -128,6 +128,66 @@ export function MessageGrid() {
     }
   }, [selectedIndex, rows, rowVirtualizer]);
 
+  // Keep stable refs so the keydown closure never goes stale
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target as Element).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      const currentRows = rowsRef.current;
+      const currentSelected = selectedIndexRef.current;
+      if (currentRows.length === 0) return;
+
+      const pos = currentSelected !== null
+        ? currentRows.findIndex((r) => r.original.index === currentSelected)
+        : -1;
+
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'k': {
+          e.preventDefault();
+          const next = pos <= 0 ? 0 : pos - 1;
+          setSelectedIndex(currentRows[next]!.original.index);
+          parentRef.current?.focus({ preventScroll: true });
+          break;
+        }
+        case 'ArrowDown':
+        case 'j': {
+          e.preventDefault();
+          const next = pos < 0 ? 0 : Math.min(pos + 1, currentRows.length - 1);
+          setSelectedIndex(currentRows[next]!.original.index);
+          parentRef.current?.focus({ preventScroll: true });
+          break;
+        }
+        case 'g': {
+          setSelectedIndex(currentRows[0]!.original.index);
+          parentRef.current?.focus({ preventScroll: true });
+          break;
+        }
+        case 'G': {
+          setSelectedIndex(currentRows[currentRows.length - 1]!.original.index);
+          parentRef.current?.focus({ preventScroll: true });
+          break;
+        }
+        case 'Enter': {
+          if (currentSelected !== null) {
+            document.getElementById('detail-scroll')?.focus();
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setSelectedIndex]);
+
   useEffect(() => {
     if (contextMenu === null) return;
     const handle = () => { setContextMenu(null); };
@@ -160,7 +220,7 @@ export function MessageGrid() {
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Single scroll container — thead is sticky so header scrolls
           horizontally with the body, eliminating misalignment. */}
-      <div ref={parentRef} className="flex-1 overflow-auto">
+      <div ref={parentRef} id="grid-scroll" tabIndex={0} className="flex-1 overflow-auto focus:outline-none">
         <table
           className="border-collapse"
           style={{ width: 'max-content', minWidth: '100%' }}

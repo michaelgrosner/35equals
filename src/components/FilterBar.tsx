@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Search, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useParserWorker } from "@/worker/useParserWorker";
 import { useMessagesStore } from "@/state/messages";
@@ -12,7 +12,8 @@ export function FilterBar() {
   const [tree, setTree] = useState<FilterTree | null>(null);
   const [combineWithSearch, setCombineWithSearch] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
-  
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const { filter } = useParserWorker();
   const { messages, filteredIndices } = useMessagesStore();
   
@@ -23,6 +24,19 @@ export function FilterBar() {
     
     filter(finalTree, finalRegex);
   }, [tree, globalRegex, combineWithSearch, messages.length, filter]);
+
+  // '/' focuses the search input from anywhere
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== '/') return;
+      const tag = (e.target as Element).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Debounce filter application
   useEffect(() => {
@@ -42,13 +56,18 @@ export function FilterBar() {
         <div className="relative flex-1 flex items-center max-w-md">
           <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
           <input
+            ref={inputRef}
             type="text"
             placeholder="Search raw FIX (e.g. 35=D|35=8 or AAPL)"
             className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-8 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={globalRegex}
             onChange={(e) => setGlobalRegex(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Escape") setGlobalRegex("");
+              if (e.key === 'Escape') {
+                setGlobalRegex('');
+                inputRef.current?.blur();
+                document.getElementById('grid-scroll')?.focus();
+              }
             }}
           />
           {globalRegex && (

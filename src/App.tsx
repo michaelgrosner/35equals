@@ -97,11 +97,20 @@ export function App() {
                 <Info className="h-4 w-4" />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 text-sm">
+            <PopoverContent align="end" className="w-72 text-sm">
               <p className="font-semibold mb-1">FIXate</p>
-              <p className="text-muted-foreground text-xs leading-relaxed">
+              <p className="text-muted-foreground text-xs leading-relaxed mb-3">
                 All parsing happens in your browser. Nothing is uploaded. No analytics.
               </p>
+              <p className="font-semibold text-xs mb-2">Keyboard shortcuts</p>
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground items-center">
+                <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] text-foreground">↑ ↓</span><span>Move selection</span>
+                <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] text-foreground">j k</span><span>Move selection</span>
+                <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] text-foreground">g / G</span><span>First / last row</span>
+                <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] text-foreground">Enter</span><span>Focus detail panel</span>
+                <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] text-foreground">Esc</span><span>Return to grid</span>
+                <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] text-foreground">/</span><span>Focus search</span>
+              </div>
             </PopoverContent>
           </Popover>
 

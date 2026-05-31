@@ -165,7 +165,17 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
       )}
 
       {/* Fields table */}
-      <div className="flex-1 overflow-auto">
+      <div
+        id="detail-scroll"
+        tabIndex={-1}
+        className="flex-1 overflow-auto focus:outline-none"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            document.getElementById('grid-scroll')?.focus();
+          }
+        }}
+      >
         {fieldsLoading ? (
           <div className="flex h-20 items-center justify-center">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
