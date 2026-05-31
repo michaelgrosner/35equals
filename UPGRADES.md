@@ -39,8 +39,7 @@ Operators by field type:
   ensure state persistence across components.
 - **Reactive UI**: Built with Shadcn/UI primitives (`select`, `checkbox`, `badge`).
 
-## 2. Typed value rendering (timestamps, prices, sides) + semantic coloring
-...
+## 2. ✅ Typed value rendering (timestamps, prices, sides) + semantic coloring
 
 The dictionary already exposes `type` (`UTCTIMESTAMP`, `PRICE`, `INT`, …).
 Today everything renders as raw text. This needs to be specified per

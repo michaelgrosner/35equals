@@ -1,5 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { ParsedMessage } from '@/parser/types';
+import { ColumnSettings } from '@/components/ColumnSettings';
 
 function TagHeader({ name, tag }: { name: string; tag: number }) {
   return (
@@ -41,78 +42,12 @@ const TAG_NAMES: Record<number, string> = {
 // Tags where sorting makes sense (numeric / timestamp types)
 const SORTABLE_TAGS = new Set<number>([52, 34, 38, 44, 6, 14, 151]);
 
-// Enum label overrides for tag 35 (MsgType)
-const MSG_TYPE_LABELS: Record<string, string> = {
-  '0': 'Heartbeat',
-  '1': 'TestRequest',
-  '2': 'ResendRequest',
-  '3': 'Reject',
-  '4': 'SequenceReset',
-  '5': 'Logout',
-  '6': 'IndicationofInterest',
-  '7': 'Advertisement',
-  '8': 'ExecutionReport',
-  '9': 'OrderCancelReject',
-  A: 'Logon',
-  B: 'News',
-  C: 'Email',
-  D: 'NewOrderSingle',
-  E: 'NewOrderList',
-  F: 'OrderCancelRequest',
-  G: 'OrderCancelReplaceRequest',
-  H: 'OrderStatusRequest',
-  J: 'Allocation',
-  K: 'ListCancelRequest',
-  L: 'ListExecute',
-  M: 'ListStatusRequest',
-  N: 'ListStatus',
-  P: 'AllocationACK',
-  Q: 'DontKnowTrade',
-  R: 'QuoteRequest',
-  S: 'Quote',
-  T: 'SettlementInstructions',
-  V: 'MarketDataRequest',
-  W: 'MarketDataSnapshotFullRefresh',
-  X: 'MarketDataIncrementalRefresh',
-  Y: 'MarketDataRequestReject',
-  Z: 'QuoteCancel',
-  a: 'QuoteStatusRequest',
-  b: 'QuoteAcknowledgement',
-  c: 'SecurityDefinitionRequest',
-  d: 'SecurityDefinition',
-  e: 'SecurityStatusRequest',
-  f: 'SecurityStatus',
-  g: 'TradingSessionStatusRequest',
-  h: 'TradingSessionStatus',
-  i: 'MassQuote',
-  j: 'BusinessMessageReject',
-  k: 'BidRequest',
-  l: 'BidResponse',
-  m: 'ListStrikePrice',
-};
-
-// Enum label overrides for tag 54 (Side)
-const SIDE_LABELS: Record<string, string> = {
-  '1': 'Buy',
-  '2': 'Sell',
-  '3': 'BuyMinus',
-  '4': 'SellPlus',
-  '5': 'SellShort',
-  '6': 'SellShortExempt',
-  '7': 'Undisclosed',
-  '8': 'Cross',
-  '9': 'CrossShort',
-};
-
-function cellValue(tag: number, row: GridRow): string {
+function cellValue(tag: number, row: GridRow): string | number {
   const raw = row.byTag.get(tag) ?? '';
-  if (tag === 35) {
-    // Prefer the parsed msgType label, then enum lookup, then raw
-    if (row.msgType !== undefined) return row.msgType;
-    return MSG_TYPE_LABELS[raw] ?? raw;
-  }
-  if (tag === 54) {
-    return SIDE_LABELS[raw] ?? raw;
+  // Tag 52 is a timestamp, lexicographical sort is correct.
+  if (SORTABLE_TAGS.has(tag) && tag !== 52) {
+    const num = parseFloat(raw);
+    return isNaN(num) ? raw : num;
   }
   return raw;
 }
@@ -126,7 +61,7 @@ export const DEFAULT_VISIBLE_TAGS = [
 /** Column definition for the row-index column (always first). */
 export const indexColumn = helper.display({
   id: '0',
-  header: '#',
+  header: () => <ColumnSettings />,
   cell: (info) => info.row.index + 1,
   size: 60,
   enableSorting: false,

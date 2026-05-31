@@ -13,8 +13,39 @@ import { useSettingsStore } from '@/state/settings';
 import { makeTagColumn, indexColumn, DEFAULT_VISIBLE_TAGS } from '@/lib/columns';
 import type { GridRow } from '@/lib/columns';
 import { cn } from '@/lib/utils';
+import { formatValue, type Tone } from '@/lib/format';
 
 const ROW_HEIGHT = 28;
+
+const CHIP_BASE = 'inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase';
+const CHIP_DEFAULT = `${CHIP_BASE} bg-secondary text-secondary-foreground`;
+
+const TONE_CHIP: Record<string, string> = {
+  rose:    `${CHIP_BASE} bg-tone-rose/15 text-tone-rose`,
+  emerald: `${CHIP_BASE} bg-tone-emerald/15 text-tone-emerald`,
+  amber:   `${CHIP_BASE} bg-tone-amber/15 text-tone-amber`,
+  sky:     `${CHIP_BASE} bg-tone-sky/15 text-tone-sky`,
+  indigo:  `${CHIP_BASE} bg-tone-indigo/15 text-tone-indigo`,
+  violet:  `${CHIP_BASE} bg-tone-violet/15 text-tone-violet`,
+  teal:    `${CHIP_BASE} bg-tone-teal/15 text-tone-teal`,
+  slate:   `${CHIP_BASE} bg-tone-slate/15 text-tone-slate`,
+  neutral: `${CHIP_BASE} bg-tone-neutral/15 text-tone-neutral`,
+  muted:   `${CHIP_BASE} bg-tone-muted/15 text-tone-muted`,
+  peach:   `${CHIP_BASE} bg-tone-peach/15 text-tone-peach`,
+  pink:    `${CHIP_BASE} bg-tone-pink/15 text-tone-pink`,
+};
+
+const TONE_TEXT: Record<string, string> = {
+  rose: 'text-tone-rose', emerald: 'text-tone-emerald', amber: 'text-tone-amber',
+  sky: 'text-tone-sky', indigo: 'text-tone-indigo', violet: 'text-tone-violet',
+  teal: 'text-tone-teal', slate: 'text-tone-slate', neutral: 'text-tone-neutral',
+  muted: 'text-tone-muted', peach: 'text-tone-peach', pink: 'text-tone-pink',
+};
+
+function getToneClass(tone: Tone | undefined, isChip: boolean): string {
+  if (!tone) return isChip ? CHIP_DEFAULT : '';
+  return isChip ? (TONE_CHIP[tone] ?? CHIP_DEFAULT) : (TONE_TEXT[tone] ?? '');
+}
 
 export function MessageGrid() {
   const { messages, filteredIndices, selectedIndex, setSelectedIndex } =
@@ -173,6 +204,10 @@ export function MessageGrid() {
               const row = rows[virtualRow.index];
               if (row === undefined) return null;
               const isSelected = selectedIndex === row.original.index;
+              const msg = row.original;
+              const hasErrors = msg.warnings.some((w) => w.type === 'BAD_CHECKSUM');
+              const hasWarnings = msg.warnings.length > 0;
+
               return (
                 <tr
                   key={row.id}
@@ -180,10 +215,12 @@ export function MessageGrid() {
                   aria-selected={isSelected}
                   style={{ height: ROW_HEIGHT }}
                   className={cn(
-                    'cursor-pointer border-b border-border transition-colors',
+                    'cursor-pointer border-b border-border transition-colors relative',
                     isSelected
                       ? 'bg-primary/10 hover:bg-primary/15'
-                      : 'hover:bg-muted/50'
+                      : 'hover:bg-muted/50',
+                    hasErrors && 'border-l-2 border-l-tone-rose',
+                    !hasErrors && hasWarnings && 'border-l-2 border-l-tone-amber'
                   )}
                   onClick={() => {
                     setSelectedIndex(isSelected ? null : row.original.index);
@@ -191,9 +228,29 @@ export function MessageGrid() {
                 >
                   {row.getVisibleCells().map((cell) => {
                     const isIndex = cell.column.id === '0';
-                    const displayValue = isIndex
-                      ? String(cell.row.index + 1)
-                      : String(cell.getValue<string | number>() ?? '');
+                    if (isIndex) {
+                      return (
+                        <td
+                          key={cell.id}
+                          style={{
+                            paddingLeft: 8,
+                            paddingRight: 8,
+                            fontSize: '0.75rem',
+                            height: ROW_HEIGHT,
+                            verticalAlign: 'middle',
+                            whiteSpace: 'nowrap',
+                          }}
+                          className="font-mono text-muted-foreground"
+                        >
+                          {String(cell.row.index + 1)}
+                        </td>
+                      );
+                    }
+
+                    const tag = parseInt(cell.column.id, 10);
+                    const rawValue = msg.byTag.get(tag) ?? '';
+                    const formatted = formatValue(tag, rawValue);
+
                     return (
                       <td
                         key={cell.id}
@@ -204,14 +261,18 @@ export function MessageGrid() {
                           height: ROW_HEIGHT,
                           verticalAlign: 'middle',
                           whiteSpace: 'nowrap',
+                          textAlign: formatted.align ?? 'left',
                         }}
-                        className={cn(
-                          'font-mono',
-                          isIndex ? 'text-muted-foreground' : ''
-                        )}
-                        title={displayValue}
+                        title={formatted.title ?? rawValue}
                       >
-                        {displayValue}
+                        <div className={cn("flex items-baseline gap-1.5", formatted.align === 'right' ? "justify-end" : "")}>
+                          <div className={cn('font-mono', getToneClass(formatted.tone, !!formatted.isChip))}>
+                            {formatted.rendered ?? formatted.text}
+                          </div>
+                          {formatted.isChip && rawValue !== formatted.text && (
+                            <span className="font-mono text-[10px] text-muted-foreground opacity-60">{rawValue}</span>
+                          )}
+                        </div>
                       </td>
                     );
                   })}

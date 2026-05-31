@@ -4,7 +4,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { InputPanel } from '@/components/InputPanel';
 import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
-import { ColumnSettings } from '@/components/ColumnSettings';
 import { DropZone } from '@/components/DropZone';
 import { FilterBar } from '@/components/FilterBar';
 import {
@@ -87,8 +86,6 @@ export function App() {
           FIX protocol log browser
         </span>
         <div className="ml-auto flex items-center gap-2">
-          {isReady && !isSingleMessage && <ColumnSettings />}
-
           {/* About popover */}
           <Popover>
             <PopoverTrigger asChild>
