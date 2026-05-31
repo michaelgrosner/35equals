@@ -1,6 +1,15 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import type { ParsedMessage } from '@/parser/types';
 
+function TagHeader({ name, tag }: { name: string; tag: number }) {
+  return (
+    <span>
+      {name}{' '}
+      <span className="text-muted-foreground/50 font-normal">{tag}</span>
+    </span>
+  );
+}
+
 export type GridRow = ParsedMessage;
 
 const helper = createColumnHelper<GridRow>();
@@ -128,7 +137,7 @@ export function makeTagColumn(tag: number) {
   const name = TAG_NAMES[tag] ?? `Tag${String(tag)}`;
   return helper.accessor((row) => cellValue(tag, row), {
     id: String(tag),
-    header: `${String(tag)} ${name}`,
+    header: () => <TagHeader name={name} tag={tag} />,
     size: 120,
     enableSorting: SORTABLE_TAGS.has(tag),
   });

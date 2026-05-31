@@ -30,12 +30,11 @@ test("file input → grid populates", async ({ page }) => {
 test("column toggle persists across reload", async ({ page }) => {
   await page.goto("/");
 
-  // Paste a single message — single-message layout auto-selects and shows DetailPanel
   await page.locator("textarea").fill(
     "8=FIX.4.2|9=100|35=D|49=CLIENT1|56=BROKER1|34=1|52=20240115-09:30:00|11=ORD001|55=AAPL|54=1|38=100|44=150.25|40=2|59=0|10=100|"
   );
+  await page.locator('button[aria-label="Parse FIX messages"]').click();
 
-  // Single message: detail panel appears with fields table
   await expect(
     page.locator("table th").filter({ hasText: "Name" })
   ).toBeVisible({ timeout: 10000 });

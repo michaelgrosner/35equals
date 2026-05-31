@@ -259,15 +259,13 @@ original message text.
 
 ### 5.5 Filtering
 
-Two layers, both running in the worker:
-
-1. **Global regex**: matches against each message's raw text. Invalid regex
-   shows an inline error; valid regex is debounced (~150 ms).
-2. **Per-column filters**: substring (default) or exact-match for enum-typed
-   columns (rendered as multi-select chips).
-
-Filters are AND-combined. Active filter count is shown in the filter bar
-with a one-click "reset filters" affordance.
+> **Deferred.** Filtering has been removed from the current build while the
+> UX is reconsidered. Candidates for a future milestone:
+>
+> - Global regex against raw message text (debounced, invalid-regex indicator).
+> - Per-column substring / enum-select filters (AND-combined).
+> - Active filter count badge + one-click reset.
+> - All filter work should run in the Web Worker to keep the main thread free.
 
 ### 5.6 Theming
 
@@ -405,6 +403,7 @@ into the store so the grid populates progressively.
 
 ## 11. Out of scope for v1
 
+- **Filtering** (global regex + per-column) — see §5.5; deferred pending UX design.
 - Repeating-group reconstruction in the detail view (flat order only for now).
 - Persisting parsed messages between sessions (OPFS / IndexedDB).
 - Exporting filtered messages to CSV / JSON.

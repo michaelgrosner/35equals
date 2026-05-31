@@ -132,13 +132,19 @@ export function tokenize(input: string): TokenizedMessage[] {
     const segment = input.slice(pos, segEnd);
 
     if (segment.length > 0) {
-      const pair = parseSegment(segment);
+      // Skip leading whitespace so that newline-separated messages (e.g. one
+      // message per line) are still split correctly on the tag-8 boundary.
+      let wsLen = 0;
+      while (wsLen < segment.length && segment.charCodeAt(wsLen) <= 0x20) wsLen++;
+      const trimmed = wsLen > 0 ? segment.slice(wsLen) : segment;
+
+      const pair = parseSegment(trimmed);
       if (pair !== null) {
         const [tag] = pair;
         // Tag 8 (BeginString) starts a new message — flush previous if any
         if (tag === 8 && msgPairs.length > 0) {
           result.push(finalizeMessage(input, msgStart, pos, dw, msgPairs));
-          msgStart = pos;
+          msgStart = pos + wsLen;
           msgPairs = [];
         }
         msgPairs.push(pair);

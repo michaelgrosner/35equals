@@ -2,11 +2,10 @@ import { useEffect, useRef, useCallback } from 'react';
 import * as Comlink from 'comlink';
 import { useMessagesStore } from '@/state/messages';
 import type { ParsedMessage } from '@/parser/types';
-import type { TransferableMessage, FilterArgs } from './parser.worker';
+import type { TransferableMessage } from './parser.worker';
 
 type WorkerApi = {
   parse(text: string): Promise<TransferableMessage[]>;
-  filter(args: FilterArgs): Promise<Uint32Array>;
 };
 
 function deserialize(msg: TransferableMessage): ParsedMessage {
@@ -21,7 +20,7 @@ export function useParserWorker() {
   const workerRef = useRef<Worker | null>(null);
   const apiRef = useRef<Comlink.Remote<WorkerApi> | null>(null);
 
-  const { setMessages, setParseState, setParseProgress, setError, setFilteredIndices } =
+  const { setMessages, setParseState, setParseProgress, setError } =
     useMessagesStore();
 
   useEffect(() => {
@@ -82,20 +81,5 @@ export function useParserWorker() {
     [setMessages, setParseState, setParseProgress, setError]
   );
 
-  const filter = useCallback(
-    async (args: FilterArgs): Promise<void> => {
-      const api = apiRef.current;
-      if (api === null) return;
-
-      try {
-        const indices = await api.filter(args);
-        setFilteredIndices(indices);
-      } catch {
-        // Silently ignore filter errors; leave existing filteredIndices in place
-      }
-    },
-    [setFilteredIndices]
-  );
-
-  return { parse, parseFile, filter };
+  return { parse, parseFile };
 }

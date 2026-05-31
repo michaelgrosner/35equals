@@ -3,6 +3,7 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  flexRender,
   type SortingState,
   type ColumnDef,
 } from '@tanstack/react-table';
@@ -17,7 +18,7 @@ const ROW_HEIGHT = 28;
 const ROW_HEIGHT_PX = '28px';
 
 export function MessageGrid() {
-  const { messages, filteredIndices, selectedIndex, setSelectedIndex } =
+  const { messages, selectedIndex, setSelectedIndex } =
     useMessagesStore();
   const { columns: colSettings, setColumnVisible } = useSettingsStore();
 
@@ -58,13 +59,7 @@ export function MessageGrid() {
     }
   }
 
-  // Apply filteredIndices: when set, show only matching rows in index order
-  const tableData: GridRow[] =
-    filteredIndices !== null
-      ? Array.from(filteredIndices, (i) => messages[i]).filter(
-          (m): m is GridRow => m !== undefined
-        )
-      : messages;
+  const tableData: GridRow[] = messages;
 
   const table = useReactTable<GridRow>({
     data: tableData,
@@ -150,9 +145,7 @@ export function MessageGrid() {
                           canSort && 'cursor-pointer hover:text-foreground'
                         )}
                       >
-                        {typeof header.column.columnDef.header === 'string'
-                          ? header.column.columnDef.header
-                          : null}
+                        {flexRender(header.column.columnDef.header, header.getContext())}
                         {sorted === 'asc' && <span className="text-primary">▲</span>}
                         {sorted === 'desc' && <span className="text-primary">▼</span>}
                       </span>

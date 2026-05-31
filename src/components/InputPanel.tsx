@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { Loader2, X, Upload, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMessagesStore } from '@/state/messages';
@@ -10,41 +10,20 @@ interface InputPanelProps {
   collapsed?: boolean;
 }
 
-const DEBOUNCE_MS = 300;
-
 export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPanelProps) {
   const [text, setText] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { parseState, parseProgress, errorMessage, messages, clear } = useMessagesStore();
 
   const isParsing = parseState === 'parsing';
   const isError = parseState === 'error';
 
-  // Auto-parse with debounce when text changes
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const val = e.target.value;
-      setText(val);
-
-      if (debounceRef.current !== null) {
-        clearTimeout(debounceRef.current);
-      }
-      if (val.trim().length === 0) return;
-
-      debounceRef.current = setTimeout(() => {
-        void onParse(val);
-      }, DEBOUNCE_MS);
+      setText(e.target.value);
     },
-    [onParse]
+    []
   );
-
-  // Clear debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current !== null) clearTimeout(debounceRef.current);
-    };
-  }, []);
 
   const handleClear = useCallback(() => {
     setText('');
