@@ -41,8 +41,7 @@ const stubDict: DictionaryData = {
   },
 };
 
-const getDict = (_v: FixVersion): Promise<DictionaryData> =>
-  Promise.resolve(stubDict);
+const getDict = (_v: FixVersion): DictionaryData => stubDict;
 
 // ---------------------------------------------------------------------------
 // Checksum helpers
@@ -71,11 +70,11 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // FIX 4.2 NewOrderSingle
   // -------------------------------------------------------------------------
-  it("parses a FIX 4.2 NewOrderSingle (35=D) with pipe delimiter", async () => {
+  it("parses a FIX 4.2 NewOrderSingle (35=D) with pipe delimiter", () => {
     const inner = "8=FIX.4.2|9=100|35=D|49=SENDER|56=TARGET|11=ORD001|55=AAPL|54=1|38=100|40=2|44=150.00";
     const raw = buildMessage(inner, "|");
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     expect(msgs).toHaveLength(1);
     const msg = msgs[0]!;
@@ -95,11 +94,11 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // FIX 4.4 ExecutionReport
   // -------------------------------------------------------------------------
-  it("parses a FIX 4.4 ExecutionReport (35=8)", async () => {
+  it("parses a FIX 4.4 ExecutionReport (35=8)", () => {
     const inner = "8=FIX.4.4|9=80|35=8|49=EXEC|56=CLIENT|55=MSFT|54=2";
     const raw = buildMessage(inner, "|");
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     expect(msgs).toHaveLength(1);
     const msg = msgs[0]!;
@@ -112,11 +111,11 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // FIXT.1.1 with ApplVerID=9 → FIX.5.0SP2
   // -------------------------------------------------------------------------
-  it("handles FIXT.1.1 with tag 1128=9 as FIX.5.0SP2", async () => {
+  it("handles FIXT.1.1 with tag 1128=9 as FIX.5.0SP2", () => {
     const inner = "8=FIXT.1.1|9=50|1128=9|35=D|49=SENDER|56=TARGET";
     const raw = buildMessage(inner, "|");
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     expect(msgs).toHaveLength(1);
     const msg = msgs[0]!;
@@ -126,11 +125,11 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // Valid checksum passes (no BAD_CHECKSUM warning)
   // -------------------------------------------------------------------------
-  it("valid checksum produces no BAD_CHECKSUM warning", async () => {
+  it("valid checksum produces no BAD_CHECKSUM warning", () => {
     const inner = "8=FIX.4.2|9=30|35=0|49=A|56=B";
     const raw = buildMessage(inner, "|");
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     const msg = msgs[0]!;
     const badCs = msg.warnings.filter((w) => w.type === "BAD_CHECKSUM");
@@ -140,10 +139,10 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // Bad checksum adds warning
   // -------------------------------------------------------------------------
-  it("bad checksum adds BAD_CHECKSUM warning", async () => {
+  it("bad checksum adds BAD_CHECKSUM warning", () => {
     const raw = "8=FIX.4.2|9=30|35=0|49=A|56=B|10=999|";
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     const msg = msgs[0]!;
     const badCs = msg.warnings.filter((w) => w.type === "BAD_CHECKSUM");
@@ -153,10 +152,10 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // Missing tag 10 → no warning
   // -------------------------------------------------------------------------
-  it("missing tag 10 produces no BAD_CHECKSUM warning", async () => {
+  it("missing tag 10 produces no BAD_CHECKSUM warning", () => {
     const raw = "8=FIX.4.2|9=30|35=0|49=A|56=B|";
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     const msg = msgs[0]!;
     const badCs = msg.warnings.filter((w) => w.type === "BAD_CHECKSUM");
@@ -166,10 +165,10 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // Unknown tag → UNKNOWN_TAG warning
   // -------------------------------------------------------------------------
-  it("unknown tag produces UNKNOWN_TAG warning", async () => {
+  it("unknown tag produces UNKNOWN_TAG warning", () => {
     const raw = "8=FIX.4.2|9=30|35=0|9999=WEIRDVALUE|";
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     const msg = msgs[0]!;
     const unknownTags = msg.warnings.filter((w) => w.type === "UNKNOWN_TAG");
@@ -180,11 +179,11 @@ describe("parseMessages", () => {
   // -------------------------------------------------------------------------
   // index is set correctly for multiple messages
   // -------------------------------------------------------------------------
-  it("assigns correct index to each message", async () => {
+  it("assigns correct index to each message", () => {
     const make = (type: string) => `8=FIX.4.2|35=${type}|`;
     const raw = make("0") + make("D") + make("8");
     const tokens = tokenize(raw);
-    const msgs = await parseMessages(tokens, getDict);
+    const msgs = parseMessages(tokens, getDict);
 
     expect(msgs).toHaveLength(3);
     expect(msgs[0]!.index).toBe(0);

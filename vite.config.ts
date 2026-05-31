@@ -12,4 +12,8 @@ export default defineConfig({
   worker: {
     format: "es",
   },
+  test: {
+    // Exclude Playwright E2E specs — those run under `pnpm test:e2e`, not vitest.
+    exclude: ["**/node_modules/**", "**/dist/**", "tests/e2e/**"],
+  },
 });

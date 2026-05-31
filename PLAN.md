@@ -415,6 +415,10 @@ into the store so the grid populates progressively.
 These are all reasonable v2 candidates and the architecture leaves room
 for them.
 
+**Parser stretch goals:**
+- Opt-in checksum validation (flag on parse call; currently always runs).
+- Repeating-group reconstruction using dictionary `<group>` declarations.
+
 ---
 
 ## 12. Milestones
@@ -433,7 +437,7 @@ for them.
    progressive population.
 7. ✅ **M7 — Polish.** Empty / single-message states, warnings UI, copy raw,
    resizable split, accessibility pass.
-8. **M8 — Perf + E2E.** 100k fixture, bench suite, Playwright specs,
+8. ✅ **M8 — Perf + E2E.** 100k fixture, bench suite, Playwright specs,
    lighthouse audit.
 
 Each milestone is a mergeable PR.

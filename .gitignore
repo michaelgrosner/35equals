@@ -18,6 +18,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Generated fixtures (large files — regenerate with pnpm gen:fixture)
+tests/fixtures/100k-messages.log
+
 # Environment
 .env
 .env.local
