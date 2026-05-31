@@ -9,11 +9,13 @@ interface MessagesStore {
   parseState: ParseState;
   parseProgress: number;
   errorMessage: string | null;
+  filename: string | null;
   setMessages: (msgs: ParsedMessage[]) => void;
   setSelectedIndex: (i: number | null) => void;
   setParseState: (s: ParseState) => void;
   setParseProgress: (progress: number) => void;
   setError: (msg: string) => void;
+  setFilename: (name: string | null) => void;
   clear: () => void;
 }
 
@@ -23,11 +25,13 @@ export const useMessagesStore = create<MessagesStore>((set) => ({
   parseState: 'idle',
   parseProgress: 0,
   errorMessage: null,
+  filename: null,
   setMessages: (msgs) => { set({ messages: msgs }); },
   setSelectedIndex: (i) => { set({ selectedIndex: i }); },
   setParseState: (s) => { set({ parseState: s }); },
   setParseProgress: (progress) => { set({ parseProgress: progress }); },
   setError: (msg) => { set({ parseState: 'error', errorMessage: msg }); },
+  setFilename: (name) => { set({ filename: name }); },
   clear: () => {
     set({
       messages: [],
@@ -35,6 +39,7 @@ export const useMessagesStore = create<MessagesStore>((set) => ({
       parseState: 'idle',
       parseProgress: 0,
       errorMessage: null,
+      filename: null,
     });
   },
 }));

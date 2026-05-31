@@ -1,11 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as Comlink from 'comlink';
 import { useMessagesStore } from '@/state/messages';
-import type { ParsedMessage } from '@/parser/types';
+import type { ParsedMessage, ParsedField, FixVersion } from '@/parser/types';
 import type { TransferableMessage } from './parser.worker';
 
 type WorkerApi = {
   parse(text: string): Promise<TransferableMessage[]>;
+  getDetail(rawText: string, version: FixVersion): Promise<ParsedField[]>;
 };
 
 function deserialize(msg: TransferableMessage): ParsedMessage {
@@ -20,7 +21,7 @@ export function useParserWorker() {
   const workerRef = useRef<Worker | null>(null);
   const apiRef = useRef<Comlink.Remote<WorkerApi> | null>(null);
 
-  const { setMessages, setParseState, setParseProgress, setError } =
+  const { setMessages, setParseState, setParseProgress, setError, setFilename } =
     useMessagesStore();
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function useParserWorker() {
       const api = apiRef.current;
       if (api === null) return;
 
+      setFilename(null);
       setParseState('parsing');
       try {
         const transferable = await api.parse(text);
@@ -55,7 +57,7 @@ export function useParserWorker() {
         setError(msg);
       }
     },
-    [setMessages, setParseState, setError]
+    [setMessages, setParseState, setError, setFilename]
   );
 
   const parseFile = useCallback(
@@ -65,6 +67,7 @@ export function useParserWorker() {
 
       setParseState('parsing');
       setParseProgress(0);
+      setFilename(file.name);
       try {
         const text = await file.text();
         setParseProgress(50);
@@ -78,8 +81,17 @@ export function useParserWorker() {
         setError(msg);
       }
     },
-    [setMessages, setParseState, setParseProgress, setError]
+    [setMessages, setParseState, setParseProgress, setError, setFilename]
   );
 
-  return { parse, parseFile };
+  const getDetail = useCallback(
+    async (rawText: string, version: FixVersion): Promise<ParsedField[]> => {
+      const api = apiRef.current;
+      if (api === null) return [];
+      return api.getDetail(rawText, version);
+    },
+    []
+  );
+
+  return { parse, parseFile, getDetail };
 }

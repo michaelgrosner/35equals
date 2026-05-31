@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Copy, Check, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Check, AlertTriangle, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMessagesStore } from '@/state/messages';
 import { cn } from '@/lib/utils';
-import type { FixVersion } from '@/parser/types';
+import type { FixVersion, ParsedField } from '@/parser/types';
+
+interface DetailPanelProps {
+  onGetDetail: (rawText: string, version: FixVersion) => Promise<ParsedField[]>;
+}
 
 function versionBadgeClass(version: FixVersion): string {
   if (version.startsWith('FIX.4')) return 'bg-blue-500/15 text-blue-600 dark:text-blue-400';
@@ -13,21 +17,34 @@ function versionBadgeClass(version: FixVersion): string {
   return 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400';
 }
 
-export function DetailPanel() {
+export function DetailPanel({ onGetDetail }: DetailPanelProps) {
   const { messages, selectedIndex } = useMessagesStore();
 
   const msg =
     selectedIndex !== null ? (messages[selectedIndex] ?? null) : null;
 
+  const [fields, setFields] = useState<ParsedField[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [warningsOpen, setWarningsOpen] = useState(false);
 
-  // Reset copy state when message changes
+  useEffect(() => {
+    if (msg === null) {
+      setFields([]);
+      return;
+    }
+    setFieldsLoading(true);
+    void onGetDetail(msg.rawText, msg.version).then((f) => {
+      setFields(f);
+      setFieldsLoading(false);
+    });
+  }, [msg, onGetDetail]);
+
+  // Reset copy/warnings state when message changes
   useEffect(() => {
     setCopied(false);
   }, [selectedIndex]);
 
-  // Reset warnings open state when message changes
   useEffect(() => {
     setWarningsOpen(false);
   }, [selectedIndex]);
@@ -41,13 +58,7 @@ export function DetailPanel() {
     });
   }, [msg]);
 
-  if (msg === null) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground p-6">
-        Select a message from the grid
-      </div>
-    );
-  }
+  if (msg === null) return null;
 
   // Extract msgType code for display (tag 35 raw value)
   const msgTypeCode = msg.byTag.get(35) ?? '';
@@ -124,6 +135,11 @@ export function DetailPanel() {
 
       {/* Fields table */}
       <div className="flex-1 overflow-auto">
+        {fieldsLoading ? (
+          <div className="flex h-20 items-center justify-center">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
         <table className="w-full border-collapse text-xs" role="table">
           <thead>
             <tr className="sticky top-0 bg-background border-b z-10">
@@ -134,7 +150,7 @@ export function DetailPanel() {
             </tr>
           </thead>
           <tbody>
-            {msg.fields.map((field, i) => {
+            {fields.map((field, i) => {
               const isUnknown = field.name === undefined;
               const isEven = i % 2 === 0;
 
@@ -179,6 +195,7 @@ export function DetailPanel() {
             })}
           </tbody>
         </table>
+        )}
       </div>
     </div>
   );

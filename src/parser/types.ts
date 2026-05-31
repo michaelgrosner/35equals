@@ -39,7 +39,7 @@ export interface ParsedField {
 export interface ParsedMessage {
   index: number;
   rawText: string;
-  fields: ParsedField[];
+  fields?: ParsedField[];
   byTag: Map<number, string>;
   version: FixVersion;
   msgType?: string;

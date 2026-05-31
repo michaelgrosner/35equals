@@ -212,11 +212,10 @@ const builders: Record<string, MsgBuilder> = {
 // Main generation loop
 // ---------------------------------------------------------------------------
 
-const TARGET_MESSAGES = 100_000;
+const TARGET_MESSAGES = process.argv[2] !== undefined ? parseInt(process.argv[2], 10) : 100_000;
 const BASE_DATE_MS = new Date("2024-01-15T09:30:00.000Z").getTime();
-// Spread 100k messages over 6.5 hours (trading day) in milliseconds
 const TRADING_DAY_MS = 6.5 * 60 * 60 * 1000;
-const MS_PER_MSG = TRADING_DAY_MS / TARGET_MESSAGES;
+const MS_PER_MSG = TRADING_DAY_MS / Math.max(TARGET_MESSAGES, 1);
 
 const chunks: string[] = [];
 let totalBytes = 0;
@@ -234,7 +233,8 @@ for (let i = 0; i < TARGET_MESSAGES; i++) {
   totalBytes += msg.length + 1;
 }
 
-const outPath = join(__dirname, "100k-messages.log");
+const outName = TARGET_MESSAGES === 100_000 ? "100k-messages.log" : `${TARGET_MESSAGES}-messages.log`;
+const outPath = join(__dirname, outName);
 writeFileSync(outPath, chunks.join(""), "utf8");
 
 const mb = (totalBytes / 1024 / 1024).toFixed(2);

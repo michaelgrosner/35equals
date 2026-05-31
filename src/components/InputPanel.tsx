@@ -1,19 +1,39 @@
 import { useRef, useCallback, useState } from 'react';
-import { Loader2, X, Upload, AlertCircle } from 'lucide-react';
+import { Loader2, X, Upload, AlertCircle, FlaskConical, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMessagesStore } from '@/state/messages';
+
+function fixChecksum(body: string): string {
+  let sum = 0;
+  for (let i = 0; i < body.length; i++) sum += body.charCodeAt(i);
+  return String(sum & 0xff).padStart(3, '0');
+}
+
+function fixMsg(body: string): string {
+  return `${body}10=${fixChecksum(body)}|`;
+}
+
+const SAMPLE_MESSAGES = [
+  fixMsg('8=FIX.4.2|9=148|35=D|49=CLIENT1|56=BROKER1|34=1|52=20240115-09:30:00.000|11=ORD001|55=AAPL|54=1|38=100|44=185.50|40=2|59=0|'),
+  fixMsg('8=FIX.4.2|9=195|35=8|49=BROKER1|56=CLIENT1|34=2|52=20240115-09:30:00.121|11=ORD001|37=BORD001|17=EXEC001|55=AAPL|54=1|38=100|44=185.50|14=0|151=100|39=0|150=0|6=0.00|'),
+  fixMsg('8=FIX.4.2|9=215|35=8|49=BROKER1|56=CLIENT1|34=3|52=20240115-09:30:01.543|11=ORD001|37=BORD001|17=EXEC002|55=AAPL|54=1|38=100|44=185.50|32=60|31=185.48|14=60|151=40|39=1|150=F|6=185.48|'),
+  fixMsg('8=FIX.4.2|9=144|35=F|49=CLIENT1|56=BROKER1|34=4|52=20240115-09:30:02.000|11=ORD002|41=ORD001|37=BORD001|55=AAPL|54=1|38=40|'),
+  fixMsg('8=FIX.4.2|9=210|35=8|49=BROKER1|56=CLIENT1|34=5|52=20240115-09:30:02.089|11=ORD002|41=ORD001|37=BORD001|17=EXEC003|55=AAPL|54=1|38=0|44=185.50|14=60|151=0|39=4|150=4|6=185.48|'),
+].join('\n');
 
 interface InputPanelProps {
   onParse: (text: string) => Promise<void>;
   onParseFile?: (file: File) => Promise<void>;
   /** When true, collapses to a thin strip showing message count + clear. */
   collapsed?: boolean;
+  /** When true, textarea grows to fill available vertical space. */
+  fillHeight?: boolean;
 }
 
-export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPanelProps) {
+export function InputPanel({ onParse, onParseFile, collapsed = false, fillHeight = false }: InputPanelProps) {
   const [text, setText] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { parseState, parseProgress, errorMessage, messages, clear } = useMessagesStore();
+  const { parseState, parseProgress, errorMessage, messages, filename, clear } = useMessagesStore();
 
   const isParsing = parseState === 'parsing';
   const isError = parseState === 'error';
@@ -56,6 +76,11 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
         <span className="text-sm font-medium">
           {messages.length} message{messages.length !== 1 ? 's' : ''} loaded
         </span>
+        {filename !== null && (
+          <span className="text-xs font-mono text-muted-foreground truncate max-w-xs" title={filename}>
+            {filename}
+          </span>
+        )}
         {versions.length > 0 && (
           <span className="text-xs font-mono text-muted-foreground">{versions}</span>
         )}
@@ -72,10 +97,15 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
     );
   }
 
+  const textareaClass = fillHeight
+    ? 'flex-1 min-h-0 w-full resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50'
+    : 'h-48 w-full resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50';
+
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-3">
+    <div className={fillHeight ? 'flex flex-1 flex-col gap-3 px-4 py-4' : 'flex w-full max-w-2xl flex-col gap-3'}>
+      <div className={fillHeight ? 'mx-auto flex flex-1 flex-col gap-3 w-full max-w-2xl' : 'contents'}>
       <textarea
-        className="h-48 w-full resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+        className={textareaClass}
         placeholder={"Paste FIX messages here, e.g.\n8=FIX.4.2|35=D|49=SENDER|56=TARGET|..."}
         value={text}
         onChange={handleChange}
@@ -124,6 +154,16 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
             </Button>
           </>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={isParsing}
+          onClick={() => { setText(SAMPLE_MESSAGES); }}
+          aria-label="Load sample FIX messages"
+        >
+          <FlaskConical className="mr-1 h-3 w-3" />
+          Samples
+        </Button>
         {text.length > 0 && (
           <Button variant="ghost" size="sm" onClick={handleClear} aria-label="Clear input and messages">
             <X className="mr-1 h-3 w-3" />
@@ -151,6 +191,13 @@ export function InputPanel({ onParse, onParseFile, collapsed = false }: InputPan
           />
         </div>
       )}
+      {fillHeight && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+          <Lock className="h-3 w-3 flex-shrink-0" />
+          All parsing happens locally in your browser — nothing is transmitted
+        </p>
+      )}
+      </div>
     </div>
   );
 }

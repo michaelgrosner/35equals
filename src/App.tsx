@@ -6,7 +6,6 @@ import { MessageGrid } from '@/components/MessageGrid';
 import { DetailPanel } from '@/components/DetailPanel';
 import { ColumnSettings } from '@/components/ColumnSettings';
 import { DropZone } from '@/components/DropZone';
-import { EmptyState } from '@/components/EmptyState';
 import {
   Popover,
   PopoverTrigger,
@@ -17,8 +16,8 @@ import { useMessagesStore } from '@/state/messages';
 import { useSettingsStore } from '@/state/settings';
 
 export function App() {
-  const { parse, parseFile } = useParserWorker();
-  const { parseState, messages, setSelectedIndex, clear } = useMessagesStore();
+  const { parse, parseFile, getDetail } = useParserWorker();
+  const { parseState, messages, selectedIndex, setSelectedIndex, clear } = useMessagesStore();
   const { splitRatio, setSplitRatio } = useSettingsStore();
 
   const isDragging = useRef(false);
@@ -114,31 +113,41 @@ export function App() {
 
       {/* Main content */}
       <main className="flex flex-1 flex-col overflow-hidden">
-        {isReady ? (
-          isSingleMessage ? (
-            /* Single-message layout: thin header + full-width detail */
-            <>
-              <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
-              <DetailPanel />
-            </>
+        {/* Input section — collapses to thin strip once parsing completes */}
+        <div
+          className="flex flex-col overflow-hidden transition-[height] duration-300 ease-in-out"
+          style={{ height: isReady ? '2.5rem' : 'calc(100vh - 3rem)' }}
+        >
+          {isReady ? (
+            <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
           ) : (
-            /* Multi-message layout: grid + resizable detail pane */
-            <>
-              {/* Collapsed input strip */}
-              <InputPanel onParse={parse} onParseFile={parseFile} collapsed />
+            <InputPanel onParse={parse} onParseFile={parseFile} fillHeight />
+          )}
+        </div>
 
-              {/* Grid + detail pane with resizable split */}
-              <div ref={containerRef} className="flex flex-1 overflow-hidden" role="group" aria-label="Message grid and detail panel">
-                <div
-                  className="flex flex-col overflow-hidden border-r"
-                  style={{ width: `${String(splitRatio)}%` }}
-                  role="grid"
-                  aria-label="FIX messages grid"
-                >
-                  <MessageGrid />
-                </div>
+        {/* Grid / detail — revealed as input collapses */}
+        {isReady && (
+          isSingleMessage ? (
+            <div className="flex flex-1 overflow-hidden">
+              <DetailPanel onGetDetail={getDetail} />
+            </div>
+          ) : (
+            <div ref={containerRef} className="flex flex-1 overflow-hidden" role="group" aria-label="Message grid and detail panel">
+              {/* Grid — expands to full width when nothing is selected */}
+              <div
+                className="flex flex-col overflow-hidden border-r transition-[width] duration-200 ease-in-out"
+                style={{ width: selectedIndex !== null ? `${String(splitRatio)}%` : '100%' }}
+                role="grid"
+                aria-label="FIX messages grid"
+              >
+                <MessageGrid />
+              </div>
 
-                {/* Drag handle */}
+              {/* Drag handle + detail panel — collapses to 0 when nothing selected */}
+              <div
+                className="flex overflow-hidden transition-[width] duration-200 ease-in-out"
+                style={{ width: selectedIndex !== null ? `${String(100 - splitRatio)}%` : '0%' }}
+              >
                 <div
                   className="w-1 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
                   onMouseDown={handleDragStart}
@@ -154,24 +163,12 @@ export function App() {
                     }
                   }}
                 />
-
-                <div
-                  className="flex flex-col overflow-hidden"
-                  style={{ width: `${String(100 - splitRatio)}%` }}
-                >
-                  <DetailPanel />
+                <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+                  <DetailPanel onGetDetail={getDetail} />
                 </div>
               </div>
-            </>
-          )
-        ) : (
-          /* Idle / parsing / error: centred input with empty state above */
-          <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 gap-0">
-            <EmptyState />
-            <div className="w-full max-w-2xl">
-              <InputPanel onParse={parse} onParseFile={parseFile} />
             </div>
-          </div>
+          )
         )}
 
         {/* Parsing overlay */}
