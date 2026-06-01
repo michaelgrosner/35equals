@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Copy, Check, AlertTriangle, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMessagesStore } from '@/state/messages';
@@ -8,6 +8,68 @@ import { formatValue, type Tone } from '@/lib/format';
 
 interface DetailPanelProps {
   onGetDetail: (rawText: string, version: FixVersion) => Promise<ParsedField[]>;
+}
+
+// NUMINGROUP tag → delimiter tag (first tag of each instance)
+const GROUP_DELIMITERS: Record<number, number> = {
+  555: 600,   // NoLegs → LegSymbol
+  268: 269,   // NoMDEntries → MDEntryType
+  146: 55,    // NoRelatedSym → Symbol
+  453: 448,   // NoPartyIDs → PartyID
+  454: 455,   // NoSecurityAltID → SecurityAltID
+  232: 233,   // NoStipulations → StipulationType
+  78: 79,     // NoAllocs → AllocAccount
+  73: 11,     // NoOrders → ClOrdID
+  386: 336,   // NoTradingSessions → TradingSessionID
+  711: 311,   // NoUnderlyings → UnderlyingSymbol
+  457: 458,   // NoUnderlyingSecurityAltID → UnderlyingSecurityAltID
+};
+
+type FlatItem = { kind: 'field'; field: ParsedField };
+type GroupItem = { kind: 'group'; countField: ParsedField; instances: ParsedField[][] };
+type RenderedItem = FlatItem | GroupItem;
+
+function groupFields(fields: ParsedField[]): RenderedItem[] {
+  const result: RenderedItem[] = [];
+  let i = 0;
+  while (i < fields.length) {
+    const field = fields[i];
+    if (field === undefined) { i++; continue; }
+    const delimTag = GROUP_DELIMITERS[field.tag];
+    if (delimTag !== undefined && field.type === 'NUMINGROUP') {
+      const count = parseInt(field.rawValue, 10);
+      if (!isNaN(count) && count > 0 && fields[i + 1]?.tag === delimTag) {
+        const instances: ParsedField[][] = [];
+        let current: ParsedField[] | null = null;
+        let j = i + 1;
+        while (j < fields.length) {
+          const f = fields[j];
+          if (f === undefined) break;
+          // Checksum always terminates a group
+          if (f.tag === 10) { if (current) instances.push(current); current = null; break; }
+          if (f.tag === delimTag) {
+            if (current) {
+              instances.push(current);
+              if (instances.length >= count) { current = null; break; }
+            }
+            current = [f];
+          } else if (current) {
+            current.push(f);
+          } else {
+            break;
+          }
+          j++;
+        }
+        if (current) instances.push(current);
+        result.push({ kind: 'group', countField: field, instances });
+        i = j;
+        continue;
+      }
+    }
+    result.push({ kind: 'field', field });
+    i++;
+  }
+  return result;
 }
 
 function versionBadgeClass(version: FixVersion): string {
@@ -56,6 +118,14 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
   const [fieldsLoading, setFieldsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [warningsOpen, setWarningsOpen] = useState(false);
+  const [collapsedInstances, setCollapsedInstances] = useState<Set<string>>(new Set());
+  const toggleInstance = useCallback((key: string) => {
+    setCollapsedInstances(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (msg === null) {
@@ -76,6 +146,7 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
 
   useEffect(() => {
     setWarningsOpen(false);
+    setCollapsedInstances(new Set());
   }, [selectedIndex]);
 
   const handleCopy = useCallback(() => {
@@ -190,58 +261,101 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
             </tr>
           </thead>
           <tbody>
-            {fields.map((field, i) => {
-              const isUnknown = field.name === undefined;
-              const isEven = i % 2 === 0;
+            {(() => {
+              const items = groupFields(fields);
+              const rows: React.JSX.Element[] = [];
+              let flatIdx = 0;
 
-              const formatted = formatValue(
-                field.tag,
-                field.rawValue,
-                field.type,
-                field.enumLabel
-              );
-
-              const showRawUnderneath =
-                formatted.text !== field.rawValue;
-
-              return (
-                <tr
-                  key={i}
-                  role="row"
-                  className={cn(
-                    'border-b align-top',
-                    isUnknown
-                      ? 'bg-yellow-500/10 hover:bg-yellow-500/15'
-                      : isEven
-                        ? 'hover:bg-muted/30'
-                        : 'bg-muted/15 hover:bg-muted/30'
-                  )}
-                >
-                  <td className="px-3 py-1.5 font-mono text-muted-foreground">
-                    {field.tag}
-                  </td>
-                  <td className="px-3 py-1.5">
-                    {isUnknown ? (
-                      <span className="italic text-muted-foreground">unknown</span>
-                    ) : (
-                      field.name
-                    )}
-                  </td>
-                  <td className="px-3 py-1.5 font-mono break-all" title={formatted.title ?? field.rawValue}>
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <div className={cn(getToneClass(formatted.tone, !!formatted.isChip))}>
-                        {formatted.rendered ?? formatted.text}
+              function renderFieldRow(field: ParsedField, isEven: boolean, key: string, indent = false) {
+                const isUnknown = field.name === undefined;
+                const formatted = formatValue(field.tag, field.rawValue, field.type, field.enumLabel);
+                const showRaw = formatted.text !== field.rawValue;
+                return (
+                  <tr key={key} role="row" className={cn('border-b align-top', isUnknown ? 'bg-yellow-500/10 hover:bg-yellow-500/15' : isEven ? 'hover:bg-muted/30' : 'bg-muted/15 hover:bg-muted/30')}>
+                    <td className={cn('py-1.5 font-mono text-muted-foreground', indent ? 'pl-6 pr-3' : 'px-3')}>{field.tag}</td>
+                    <td className="px-3 py-1.5">{isUnknown ? <span className="italic text-muted-foreground">unknown</span> : field.name}</td>
+                    <td className="px-3 py-1.5 font-mono break-all" title={formatted.title ?? field.rawValue}>
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <div className={cn(getToneClass(formatted.tone, !!formatted.isChip))}>{formatted.rendered ?? formatted.text}</div>
+                        {showRaw && <div className="text-[10px] text-muted-foreground opacity-70">{field.rawValue}</div>}
                       </div>
-                      {showRawUnderneath && (
-                        <div className="text-[10px] text-muted-foreground opacity-70">
-                          {field.rawValue}
+                    </td>
+                  </tr>
+                );
+              }
+
+              for (const item of items) {
+                if (item.kind === 'field') {
+                  rows.push(renderFieldRow(item.field, flatIdx % 2 === 0, `f-${flatIdx}`));
+                  flatIdx++;
+                } else {
+                  const { countField, instances } = item;
+                  const groupKey = String(countField.tag);
+                  const allCollapsed = instances.every((_, i) => collapsedInstances.has(`${groupKey}-${i}`));
+
+                  // NUMINGROUP header row
+                  rows.push(
+                    <tr key={`g-${groupKey}`} className="border-b bg-muted/50">
+                      <td className="px-3 py-1 font-mono text-muted-foreground text-[11px]">{countField.tag}</td>
+                      <td className="px-3 py-1 font-semibold">{countField.name ?? 'Group'}</td>
+                      <td className="px-3 py-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{instances.length} instance{instances.length !== 1 ? 's' : ''}</span>
+                          <button
+                            className="text-[10px] text-muted-foreground/70 hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                            onClick={() => {
+                              setCollapsedInstances(prev => {
+                                const next = new Set(prev);
+                                instances.forEach((_, i) => {
+                                  const k = `${groupKey}-${i}`;
+                                  if (allCollapsed) next.delete(k); else next.add(k);
+                                });
+                                return next;
+                              });
+                            }}
+                          >
+                            {allCollapsed ? 'expand all' : 'collapse all'}
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                      </td>
+                    </tr>
+                  );
+
+                  // Instance rows
+                  for (let instIdx = 0; instIdx < instances.length; instIdx++) {
+                    const instKey = `${groupKey}-${instIdx}`;
+                    const isCollapsed = collapsedInstances.has(instKey);
+                    const instance = instances[instIdx];
+                    if (instance === undefined) continue;
+
+                    rows.push(
+                      <tr key={`gi-${instKey}`} className="border-b bg-muted/25">
+                        <td colSpan={3} className="border-l-2 border-l-muted-foreground/30">
+                          <button
+                            className="flex w-full items-center gap-1.5 px-3 py-1 text-left text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => { toggleInstance(instKey); }}
+                          >
+                            {isCollapsed
+                              ? <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                              : <ChevronDown className="h-3 w-3 flex-shrink-0" />}
+                            <span className="text-[11px] font-medium">
+                              {countField.name ? countField.name.replace(/^No/, '') : 'Instance'} {instIdx + 1} of {instances.length}
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+
+                    if (!isCollapsed) {
+                      instance.forEach((field, fieldIdx) => {
+                        rows.push(renderFieldRow(field, fieldIdx % 2 === 0, `gf-${instKey}-${fieldIdx}`, true));
+                      });
+                    }
+                  }
+                }
+              }
+              return rows;
+            })()}
           </tbody>
         </table>
         )}

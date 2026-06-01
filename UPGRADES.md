@@ -136,7 +136,7 @@ native TanStack column-resize handles, DnD reordering on the header row,
 and "pin left/right" on the right-click menu (which already exists for
 hide). Closes the loop on existing persisted state.
 
-## 5. Repeating-group reconstruction in the detail panel
+## 5. ✅ Repeating-group reconstruction in the detail panel
 
 The dictionaries carry `<group>` declarations; today repeating groups are
 a flat run of identical-tag rows that are hard to read in big

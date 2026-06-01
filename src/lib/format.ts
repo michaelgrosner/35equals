@@ -90,6 +90,19 @@ const MSG_TYPE_LABELS: Record<string, string> = {
   k: 'Bid Request',
   l: 'Bid Response',
   m: 'List Strike Price',
+  // FIX 4.4+
+  AB: 'New Order Multileg',
+  AC: 'Multileg Order Cancel Replace',
+  AE: 'Trade Capture Report',
+  AF: 'Order Mass Status Request',
+  AK: 'Confirmation',
+  AP: 'Position Report',
+  AR: 'Trade Capture Report Ack',
+  AS: 'Allocation Report',
+  AU: 'Confirmation Ack',
+  AX: 'Collateral Request',
+  AY: 'Collateral Assignment',
+  AZ: 'Collateral Response',
 };
 
 // Enum label overrides for tag 54 (Side)
@@ -401,6 +414,13 @@ const MSG_TYPE_TONES: Record<string, Tone> = {
   // Trade capture
   'AE': 'peach',   // Trade Capture Report
   'AR': 'amber',   // Trade Capture Ack
+  // Multileg / FIX 4.4+
+  'AB': 'teal',    // New Order Multileg
+  'AC': 'violet',  // Multileg Order Cancel Replace
+  'AK': 'emerald', // Confirmation
+  'AP': 'sky',     // Position Report
+  'AS': 'indigo',  // Allocation Report
+  'AU': 'emerald', // Confirmation Ack
 };
 
 function getMsgTypeTone(raw: string): Tone {

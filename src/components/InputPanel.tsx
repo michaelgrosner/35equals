@@ -13,13 +13,139 @@ function fixMsg(body: string): string {
   return `${body}10=${fixChecksum(body)}|`;
 }
 
-const SAMPLE_MESSAGES = [
-  fixMsg('8=FIX.4.2|9=148|35=D|49=CLIENT1|56=BROKER1|34=1|52=20240115-09:30:00.000|11=ORD001|55=AAPL|54=1|38=100|44=185.50|40=2|59=0|'),
-  fixMsg('8=FIX.4.2|9=195|35=8|49=BROKER1|56=CLIENT1|34=2|52=20240115-09:30:00.121|11=ORD001|37=BORD001|17=EXEC001|55=AAPL|54=1|38=100|44=185.50|14=0|151=100|39=0|150=0|6=0.00|'),
-  fixMsg('8=FIX.4.2|9=215|35=8|49=BROKER1|56=CLIENT1|34=3|52=20240115-09:30:01.543|11=ORD001|37=BORD001|17=EXEC002|55=AAPL|54=1|38=100|44=185.50|32=60|31=185.48|14=60|151=40|39=1|150=F|6=185.48|'),
-  fixMsg('8=FIX.4.2|9=144|35=F|49=CLIENT1|56=BROKER1|34=4|52=20240115-09:30:02.000|11=ORD002|41=ORD001|37=BORD001|55=AAPL|54=1|38=40|'),
-  fixMsg('8=FIX.4.2|9=210|35=8|49=BROKER1|56=CLIENT1|34=5|52=20240115-09:30:02.089|11=ORD002|41=ORD001|37=BORD001|17=EXEC003|55=AAPL|54=1|38=0|44=185.50|14=60|151=0|39=4|150=4|6=185.48|'),
-].join('\n');
+function generateSamples(): string {
+  const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)] as T;
+  const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const randId = (prefix: string) => `${prefix}${String(randInt(1000, 9999))}`;
+
+  const UNDERLYINGS = ['AAPL', 'MSFT', 'SPY', 'QQQ', 'TSLA', 'NVDA'] as const;
+  const SENDERS = ['CLIENT1', 'CLIENT2', 'ALGOFUND'] as const;
+  const BROKERS = ['BROKER1', 'BROKER2', 'EXECBROKER'] as const;
+
+  const sender = pick(SENDERS);
+  const broker = pick(BROKERS);
+  const und = pick(UNDERLYINGS);
+
+  const BASE_PRICES: Record<string, number> = { AAPL: 185, MSFT: 375, SPY: 475, QQQ: 415, TSLA: 250, NVDA: 620 };
+  const base = BASE_PRICES[und] ?? 200;
+  const atm = Math.round(base / 5) * 5;
+  const width = pick([5, 10, 15] as const);
+
+  const EXPIRIES = ['202403', '202406', '202409', '202412'] as const;
+  const expiry = pick(EXPIRIES);
+
+  type Strategy = 'call_spread' | 'put_spread' | 'straddle' | 'strangle';
+  const strategy = pick<Strategy>(['call_spread', 'put_spread', 'straddle', 'strangle']);
+
+  interface Leg { cfi: string; strike: number; side: '1' | '2'; qty: number; price: number; }
+  const legQty = randInt(1, 10) * 5;
+
+  function legPrice(moneyness: number): string {
+    return (base * moneyness + randInt(0, 50) * 0.01).toFixed(2);
+  }
+
+  let legs: Leg[];
+  if (strategy === 'call_spread') {
+    legs = [
+      { cfi: 'OCAXXX', strike: atm, side: '1', qty: legQty, price: parseFloat(legPrice(0.03)) },
+      { cfi: 'OCAXXX', strike: atm + width, side: '2', qty: legQty, price: parseFloat(legPrice(0.015)) },
+    ];
+  } else if (strategy === 'put_spread') {
+    legs = [
+      { cfi: 'OPAXXX', strike: atm, side: '1', qty: legQty, price: parseFloat(legPrice(0.03)) },
+      { cfi: 'OPAXXX', strike: atm - width, side: '2', qty: legQty, price: parseFloat(legPrice(0.015)) },
+    ];
+  } else if (strategy === 'straddle') {
+    legs = [
+      { cfi: 'OCAXXX', strike: atm, side: '1', qty: legQty, price: parseFloat(legPrice(0.03)) },
+      { cfi: 'OPAXXX', strike: atm, side: '1', qty: legQty, price: parseFloat(legPrice(0.03)) },
+    ];
+  } else {
+    legs = [
+      { cfi: 'OCAXXX', strike: atm + width, side: '1', qty: legQty, price: parseFloat(legPrice(0.02)) },
+      { cfi: 'OPAXXX', strike: atm - width, side: '1', qty: legQty, price: parseFloat(legPrice(0.02)) },
+    ];
+  }
+
+  const now = new Date();
+  const ts = (offsetMs = 0): string => {
+    const d = new Date(now.getTime() - 120000 + offsetMs);
+    const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+    return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}.${pad(d.getUTCMilliseconds(), 3)}`;
+  };
+
+  const legFields = legs
+    .map((l, i) =>
+      `600=${und}|608=${l.cfi}|609=${expiry}|612=${l.strike.toFixed(2)}|687=${l.qty}|624=${l.side}|566=${l.price.toFixed(2)}|654=LEG${String(i + 1).padStart(3, '0')}|`
+    )
+    .join('');
+
+  const leg0 = legs[0]!;
+  const leg1 = legs[1]!;
+
+  const mlClOrdId = randId('ML');
+  const mlOrdId = randId('MORD');
+  const sngClOrdId = randId('SNG');
+  const sngOrdId = randId('SORD');
+  const sngSym = pick((['AAPL', 'MSFT', 'SPY', 'NVDA'] as const).filter(s => s !== und));
+  const sngSide = pick(['1', '2'] as const);
+  const sngQty = randInt(100, 500);
+  const sngPrice = (BASE_PRICES[sngSym] ?? 200) + (Math.random() - 0.5) * 4;
+  const netPremium = Math.abs(leg0.price - leg1.price).toFixed(2);
+
+  let seq = 1;
+  const msgs: string[] = [];
+
+  // 1. NewOrderMultileg (AB)
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=250|35=AB|49=${sender}|56=${broker}|34=${seq++}|52=${ts(0)}|` +
+    `1=ACCT001|11=${mlClOrdId}|55=${und}|54=${leg0.side}|38=${legQty}|40=2|59=0|` +
+    `555=${legs.length}|${legFields}`
+  ));
+
+  // 2. ExecutionReport — Pending New
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=220|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(50, 200))}|` +
+    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQty}|` +
+    `14=0|151=${legQty}|39=A|150=A|6=0.00|555=${legs.length}|${legFields}`
+  ));
+
+  // 3. ExecutionReport — New
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=220|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(200, 500))}|` +
+    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQty}|` +
+    `14=0|151=${legQty}|39=0|150=0|6=0.00|555=${legs.length}|${legFields}`
+  ));
+
+  // 4. ExecutionReport — Filled
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=240|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(500, 1500))}|` +
+    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQty}|` +
+    `32=${legQty}|31=${netPremium}|14=${legQty}|151=0|39=2|150=F|6=${netPremium}|555=${legs.length}|${legFields}`
+  ));
+
+  // 5. NewOrderSingle — equity hedge
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=148|35=D|49=${sender}|56=${broker}|34=${seq++}|52=${ts(randInt(1500, 2500))}|` +
+    `11=${sngClOrdId}|55=${sngSym}|54=${sngSide}|38=${sngQty}|44=${sngPrice.toFixed(2)}|40=2|59=0|`
+  ));
+
+  // 6. ExecutionReport — New for equity
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=195|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(2500, 3500))}|` +
+    `11=${sngClOrdId}|37=${sngOrdId}|17=${randId('EX')}|55=${sngSym}|54=${sngSide}|38=${sngQty}|` +
+    `44=${sngPrice.toFixed(2)}|14=0|151=${sngQty}|39=0|150=0|6=0.00|`
+  ));
+
+  // 7. ExecutionReport — Filled for equity
+  msgs.push(fixMsg(
+    `8=FIX.4.4|9=210|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(3500, 5000))}|` +
+    `11=${sngClOrdId}|37=${sngOrdId}|17=${randId('EX')}|55=${sngSym}|54=${sngSide}|38=${sngQty}|` +
+    `32=${sngQty}|31=${sngPrice.toFixed(2)}|14=${sngQty}|151=0|39=2|150=F|6=${sngPrice.toFixed(2)}|`
+  ));
+
+  return msgs.join('\n');
+}
 
 interface InputPanelProps {
   onParse: (text: string) => Promise<void>;
@@ -158,7 +284,7 @@ export function InputPanel({ onParse, onParseFile, collapsed = false, fillHeight
           variant="ghost"
           size="sm"
           disabled={isParsing}
-          onClick={() => { setText(SAMPLE_MESSAGES); }}
+          onClick={() => { setText(generateSamples()); }}
           aria-label="Load sample FIX messages"
         >
           <FlaskConical className="mr-1 h-3 w-3" />
