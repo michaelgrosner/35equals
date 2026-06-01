@@ -59,8 +59,15 @@ function evaluateGroup(group: FilterGroup, msg: ParsedMessage): boolean {
 }
 
 function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
+  // Incomplete rule — don't filter yet. "is empty" and "is set" need no value.
+  const needsValue = rule.op !== 'is empty' && rule.op !== 'is set';
+  const hasValue = Array.isArray(rule.value)
+    ? rule.value.length > 0
+    : rule.value !== '' && rule.value !== undefined && rule.value !== null;
+  if (needsValue && !hasValue) return true;
+
   const rawValue = msg.byTag.get(rule.tag);
-  
+
   if (rule.op === 'is empty') return rawValue === undefined || rawValue === '';
   if (rule.op === 'is set') return rawValue !== undefined && rawValue !== '';
   if (rule.op === 'not equals') return rawValue !== rule.value;
