@@ -7,13 +7,24 @@ import type { ParsedMessage } from '../types';
 
 /**
  * Parse a FIX UTCTIMESTAMP (YYYYMMDD-HH:MM:SS[.mmm[mmm]]) to epoch ms.
+ * Uses Date.UTC() with extracted numeric components — no string reconstruction.
  * Returns null if the value doesn't match the format.
  */
 function parseFIXTimestamp(raw: string): number | null {
-  if (raw.length < 17 || raw.charCodeAt(8) !== 0x2d) return null; // '-' at index 8
-  const iso = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T${raw.slice(9)}Z`;
-  const ms = Date.parse(iso);
-  return isNaN(ms) ? null : ms;
+  // Minimum length: "YYYYMMDD-HH:MM:SS" = 17 chars; '-' must be at index 8.
+  if (raw.length < 17 || raw.charCodeAt(8) !== 0x2d) return null;
+  const yr  = parseInt(raw.slice(0, 4),  10);
+  const mo  = parseInt(raw.slice(4, 6),  10) - 1; // Date.UTC months are 0-based
+  const dy  = parseInt(raw.slice(6, 8),  10);
+  const hr  = parseInt(raw.slice(9, 11), 10);
+  const mn  = parseInt(raw.slice(12, 14), 10);
+  const sc  = parseInt(raw.slice(15, 17), 10);
+  // Optional fractional seconds: up to 6 digits; use only the first 3 (ms precision).
+  const ms  = raw.length > 17 && raw.charCodeAt(17) === 0x2e // '.'
+    ? parseInt(raw.slice(18, 21).padEnd(3, '0'), 10)
+    : 0;
+  const epoch = Date.UTC(yr, mo, dy, hr, mn, sc, ms);
+  return isNaN(epoch) ? null : epoch;
 }
 
 /**
@@ -22,15 +33,14 @@ function parseFIXTimestamp(raw: string): number | null {
  */
 function parseUserTimestamp(value: string): number | null {
   let s = value.trim();
-  // Replace space between date and time with T: "2024-01-15 09:33" → "2024-01-15T09:33"
+  // Normalise space between date and time to 'T': "2024-01-15 09:33" → "2024-01-15T09:33"
   s = s.replace(/^(\d{4}-\d{2}-\d{2})\s+(\d)/, '$1T$2');
-  // Append UTC marker if no timezone present
-  if (!/[Zz]$|[+-]\d{2}:?\d{2}$/.test(s)) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00';
-    s += 'Z';
-  }
-  const ms = Date.parse(s);
-  return isNaN(ms) ? null : ms;
+  // Date-only: add midnight so Date treats it as UTC, not local midnight.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00';
+  // Append UTC marker when no timezone is present.
+  if (!/[Zz]$|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+  const epoch = new Date(s).getTime();
+  return isNaN(epoch) ? null : epoch;
 }
 
 export function evaluateFilterTree(
