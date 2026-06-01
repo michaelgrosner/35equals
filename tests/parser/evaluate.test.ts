@@ -5,9 +5,19 @@ import type { FilterTree } from '../../src/parser/filter/types';
 
 describe('evaluateFilterTree', () => {
   const msgs: ParsedMessage[] = [
-    { index: 0, rawText: '8=FIX.4.2|35=D|55=AAPL|44=150.0|38=100|54=1|', byTag: new Map([[8, 'FIX.4.2'], [35, 'D'], [55, 'AAPL'], [44, '150.0'], [38, '100'], [54, '1']]), version: 'FIX.4.2', warnings: [] },
-    { index: 1, rawText: '8=FIX.4.2|35=8|55=AAPL|44=151.0|38=100|54=2|', byTag: new Map([[8, 'FIX.4.2'], [35, '8'], [55, 'AAPL'], [44, '151.0'], [38, '100'], [54, '2']]), version: 'FIX.4.2', warnings: [] },
-    { index: 2, rawText: '8=FIX.4.2|35=D|55=MSFT|44=200.0|38=500|54=1|', byTag: new Map([[8, 'FIX.4.2'], [35, 'D'], [55, 'MSFT'], [44, '200.0'], [38, '500'], [54, '1']]), version: 'FIX.4.2', warnings: [] },
+    { index: 0, lineNumber: 1, rawText: '8=FIX.4.2|35=D|55=AAPL|44=150.0|38=100|54=1|', byTag: new Map([[8, 'FIX.4.2'], [35, 'D'], [55, 'AAPL'], [44, '150.0'], [38, '100'], [54, '1']]), version: 'FIX.4.2', warnings: [] },
+    { index: 1, lineNumber: 2, rawText: '8=FIX.4.2|35=8|55=AAPL|44=151.0|38=100|54=2|', byTag: new Map([[8, 'FIX.4.2'], [35, '8'], [55, 'AAPL'], [44, '151.0'], [38, '100'], [54, '2']]), version: 'FIX.4.2', warnings: [] },
+    { index: 2, lineNumber: 3, rawText: '8=FIX.4.2|35=D|55=MSFT|44=200.0|38=500|54=1|', byTag: new Map([[8, 'FIX.4.2'], [35, 'D'], [55, 'MSFT'], [44, '200.0'], [38, '500'], [54, '1']]), version: 'FIX.4.2', warnings: [] },
+  ];
+
+  // Messages with SendingTime for timestamp tests (tag 52)
+  const tsBase = '20240115-09:33:00.000';
+  const tsMid  = '20240115-09:33:49.842';
+  const tsLate = '20240115-09:35:00.000';
+  const tsMsgs: ParsedMessage[] = [
+    { index: 0, lineNumber: 1, rawText: '', byTag: new Map([[52, tsBase]]), version: 'FIX.4.2', warnings: [] },
+    { index: 1, lineNumber: 2, rawText: '', byTag: new Map([[52, tsMid]]),  version: 'FIX.4.2', warnings: [] },
+    { index: 2, lineNumber: 3, rawText: '', byTag: new Map([[52, tsLate]]), version: 'FIX.4.2', warnings: [] },
   ];
 
   it('matches all with null tree and no regex', () => {
@@ -64,6 +74,41 @@ describe('evaluateFilterTree', () => {
     expect(res).toEqual(new Uint32Array([0, 1, 2]));
   });
   
+  it('timestamp > filters using FIX UTCTIMESTAMP format', () => {
+    // Only the late message should survive SendingTime > mid
+    const tree: FilterTree = { kind: 'rule', tag: 52, op: '>', value: '2024-01-15 09:33:49.842Z' };
+    const res = evaluateFilterTree(tree, tsMsgs);
+    expect(res).toEqual(new Uint32Array([2]));
+  });
+
+  it('timestamp < filters correctly', () => {
+    const tree: FilterTree = { kind: 'rule', tag: 52, op: '<', value: '2024-01-15 09:33:49.842Z' };
+    const res = evaluateFilterTree(tree, tsMsgs);
+    expect(res).toEqual(new Uint32Array([0]));
+  });
+
+  it('timestamp filter accepts date-only user input', () => {
+    // All three are on 2024-01-15; a > 2024-01-14 check should pass all
+    const tree: FilterTree = { kind: 'rule', tag: 52, op: '>', value: '2024-01-14' };
+    const res = evaluateFilterTree(tree, tsMsgs);
+    expect(res).toEqual(new Uint32Array([0, 1, 2]));
+  });
+
+  it('timestamp filter accepts time-only-less input (no Z)', () => {
+    const tree: FilterTree = { kind: 'rule', tag: 52, op: '>=', value: '2024-01-15 09:33:49.842' };
+    // The alias ≥ is the stored op; use ≥ from the operator set
+    const tree2: FilterTree = { kind: 'rule', tag: 52, op: '≥', value: '2024-01-15 09:33:49.842' };
+    const res = evaluateFilterTree(tree2, tsMsgs);
+    expect(res).toEqual(new Uint32Array([1, 2]));
+  });
+
+  it('before/after operators work for timestamps', () => {
+    const after: FilterTree = { kind: 'rule', tag: 52, op: 'after', value: '2024-01-15 09:33:49.842Z' };
+    expect(evaluateFilterTree(after, tsMsgs)).toEqual(new Uint32Array([2]));
+    const before: FilterTree = { kind: 'rule', tag: 52, op: 'before', value: '2024-01-15 09:33:49.842Z' };
+    expect(evaluateFilterTree(before, tsMsgs)).toEqual(new Uint32Array([0]));
+  });
+
   it('handles absent tags correctly', () => {
     const res1 = evaluateFilterTree({ kind: 'rule', tag: 99, op: 'is empty', value: '' }, msgs);
     expect(res1).toEqual(new Uint32Array([0, 1, 2]));
