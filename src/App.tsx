@@ -75,12 +75,12 @@ export function App() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       {/* Full-window drag-and-drop overlay */}
       <DropZone onFileDrop={parseFile} />
 
       {/* Top bar */}
-      <header className="sticky top-0 z-50 flex h-12 items-center border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="flex h-12 flex-shrink-0 items-center border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <span className="text-base font-bold tracking-tight">FIXate</span>
         <span className="ml-2 text-xs text-muted-foreground font-mono">
           FIX protocol log browser

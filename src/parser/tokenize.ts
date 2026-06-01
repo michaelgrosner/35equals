@@ -11,6 +11,7 @@
 export interface TokenizedMessage {
   rawText: string;
   pairs: [tag: number, value: string][];
+  lineNumber: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,16 @@ function detectDelim(input: string): DelimSpec {
  * new field. Leading whitespace between fields is skipped so logs with one
  * message per line are split correctly.
  */
+/** Returns true if input[pos..] starts with "8=FIX" — the FIX BeginString. */
+function isFIXBeginAt(input: string, pos: number, len: number): boolean {
+  return pos + 4 < len &&
+    input.charCodeAt(pos)     === 0x38 && // '8'
+    input.charCodeAt(pos + 1) === 0x3d && // '='
+    input.charCodeAt(pos + 2) === 0x46 && // 'F'
+    input.charCodeAt(pos + 3) === 0x49 && // 'I'
+    input.charCodeAt(pos + 4) === 0x58;   // 'X'
+}
+
 export function tokenize(input: string): TokenizedMessage[] {
   const len = input.length;
   if (len === 0) return [];
@@ -66,13 +77,18 @@ export function tokenize(input: string): TokenizedMessage[] {
 
   const result: TokenizedMessage[] = [];
   let msgStart = 0;
+  let msgLineNumber = 1;
+  let currentLine = 1;
   let pairs: [number, string][] = [];
   let pos = 0;
 
   while (pos < len) {
     // Skip leading whitespace before this field's tag digits.
     const wsStart = pos;
-    while (pos < len && input.charCodeAt(pos) <= 0x20) pos++;
+    while (pos < len && input.charCodeAt(pos) <= 0x20) {
+      if (input.charCodeAt(pos) === 0x0a) currentLine++;
+      pos++;
+    }
     if (pos >= len) break;
     const fieldStart = pos;
 
@@ -92,21 +108,35 @@ export function tokenize(input: string): TokenizedMessage[] {
     }
 
     if (!tagOk) {
-      // Malformed field — skip to the next delimiter and continue.
+      // Malformed field — scan forward to the next delimiter, but stop early
+      // if we find "8=FIX" so that log-line prefixes don't swallow BeginString.
+      let foundBegin = false;
       if (isCaret) {
         while (pos < len) {
+          if (input.charCodeAt(pos) === 0x0a) currentLine++;
+          if (isFIXBeginAt(input, pos, len)) { foundBegin = true; break; }
           if (input.charCodeAt(pos) === 0x5e && pos + 1 < len &&
-              input.charCodeAt(pos + 1) === 0x41) {
-            pos += 2;
-            break;
-          }
+              input.charCodeAt(pos + 1) === 0x41) { pos += 2; break; }
           pos++;
         }
       } else {
         while (pos < len) {
+          if (input.charCodeAt(pos) === 0x0a) currentLine++;
+          if (isFIXBeginAt(input, pos, len)) { foundBegin = true; break; }
           if (input.charCodeAt(pos) === delimCh) { pos++; break; }
           pos++;
         }
+      }
+      if (foundBegin) {
+        // Flush any accumulated pairs from a previous incomplete message,
+        // using wsStart as the rawText end to exclude the log-line prefix.
+        if (pairs.length > 0) {
+          result.push({ rawText: input.slice(msgStart, wsStart), pairs, lineNumber: msgLineNumber });
+          pairs = [];
+        }
+        msgStart = pos;
+        msgLineNumber = currentLine;
+        // Fall through to process tag 8 normally (pos is now at '8').
       }
       continue;
     }
@@ -138,15 +168,16 @@ export function tokenize(input: string): TokenizedMessage[] {
 
     // Tag 8 starts a new message — flush prior (if any) before pushing.
     if (tag === 8 && pairs.length > 0) {
-      result.push({ rawText: input.slice(msgStart, wsStart), pairs });
+      result.push({ rawText: input.slice(msgStart, wsStart), pairs, lineNumber: msgLineNumber });
       msgStart = fieldStart;
+      msgLineNumber = currentLine;
       pairs = [];
     }
     pairs.push([tag, input.slice(valueStart, valueEnd)]);
   }
 
   if (pairs.length > 0) {
-    result.push({ rawText: input.slice(msgStart, len), pairs });
+    result.push({ rawText: input.slice(msgStart, len), pairs, lineNumber: msgLineNumber });
   }
   return result;
 }

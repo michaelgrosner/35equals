@@ -37,9 +37,9 @@ describe('formatValue', () => {
   });
 
   it('assigns correct tones for MsgType', () => {
-    expect(formatValue(35, 'D', 'STRING', 'New Order Single').tone).toBe('indigo');
+    expect(formatValue(35, 'D', 'STRING', 'New Order Single').tone).toBe('sky');
     expect(formatValue(35, '0', 'STRING', 'Heartbeat').tone).toBe('slate');
-    expect(formatValue(35, 'W', 'STRING', 'Snapshot').tone).toBe('teal');
+    expect(formatValue(35, 'W', 'STRING', 'Snapshot').tone).toBe('emerald');
   });
 
   it('handles multiple values', () => {

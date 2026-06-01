@@ -38,6 +38,7 @@ export interface ParsedField {
 
 export interface ParsedMessage {
   index: number;
+  lineNumber: number;
   rawText: string;
   fields?: ParsedField[];
   byTag: Map<number, string>;

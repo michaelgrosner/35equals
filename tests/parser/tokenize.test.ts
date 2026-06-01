@@ -91,4 +91,32 @@ describe("tokenize", () => {
     expect(result[0]!.rawText).not.toContain("FIX.4.4");
     expect(result[1]!.rawText).not.toContain("FIX.4.2");
   });
+
+  // -------------------------------------------------------------------------
+  // Log prefix stripping
+  // -------------------------------------------------------------------------
+  it("strips log-line prefixes before 8=FIX and still parses all fields", () => {
+    const line1 = "2024-01-15 09:30:00.123 INFO [main] 8=FIX.4.2|9=40|35=D|34=1|10=000|";
+    const line2 = "2024-01-15 09:30:00.456 INFO [main] 8=FIX.4.2|9=40|35=8|34=2|10=001|";
+    const result = tokenize(line1 + "\n" + line2);
+    expect(result).toHaveLength(2);
+    // Tag 8 must be present in each message (not lost to prefix skip)
+    expect(result[0]!.pairs.find(([t]) => t === 8)?.[1]).toBe("FIX.4.2");
+    expect(result[1]!.pairs.find(([t]) => t === 8)?.[1]).toBe("FIX.4.2");
+    // rawText must not include log prefix
+    expect(result[0]!.rawText).not.toContain("INFO");
+    expect(result[1]!.rawText).not.toContain("INFO");
+    // Line numbers are tracked
+    expect(result[0]!.lineNumber).toBe(1);
+    expect(result[1]!.lineNumber).toBe(2);
+  });
+
+  it("parses a clean (no prefix) log at the correct line number", () => {
+    const raw = "8=FIX.4.2|35=0|10=001|\n8=FIX.4.2|35=1|10=002|\n8=FIX.4.2|35=0|10=003|";
+    const result = tokenize(raw);
+    expect(result).toHaveLength(3);
+    expect(result[0]!.lineNumber).toBe(1);
+    expect(result[1]!.lineNumber).toBe(2);
+    expect(result[2]!.lineNumber).toBe(3);
+  });
 });

@@ -186,6 +186,7 @@ function parseSingle(
 
   const result: ParsedMessage = {
     index,
+    lineNumber: tok.lineNumber,
     rawText: tok.rawText,
     fields,
     byTag,
