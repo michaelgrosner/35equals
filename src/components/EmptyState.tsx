@@ -12,7 +12,7 @@ export function EmptyState() {
       </div>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">FIXate</h1>
+        <h1 className="text-2xl font-bold tracking-tight">35equals</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
           Paste FIX messages below or drop a log file anywhere
         </p>

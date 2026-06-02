@@ -81,7 +81,7 @@ export function App() {
 
       {/* Top bar */}
       <header className="flex h-12 flex-shrink-0 items-center border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <span className="text-base font-bold tracking-tight">FIXate</span>
+        <span className="text-base font-bold tracking-tight">35equals</span>
         <span className="ml-2 text-xs text-muted-foreground font-mono">
           FIX protocol log browser
         </span>
@@ -91,14 +91,14 @@ export function App() {
             <PopoverTrigger asChild>
               <button
                 className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="About FIXate"
-                title="About FIXate"
+                aria-label="About 35equals"
+                title="About 35equals"
               >
                 <Info className="h-4 w-4" />
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 text-sm">
-              <p className="font-semibold mb-1">FIXate</p>
+              <p className="font-semibold mb-1">35equals</p>
               <p className="text-muted-foreground text-xs leading-relaxed mb-3">
                 All parsing happens in your browser. Nothing is uploaded. No analytics.
               </p>
