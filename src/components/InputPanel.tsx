@@ -228,8 +228,8 @@ export function InputPanel({ onParse, onParseFile, collapsed = false, fillHeight
     : 'h-48 w-full resize-none rounded-md border bg-background px-3 py-2 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50';
 
   return (
-    <div className={fillHeight ? 'flex flex-1 flex-col gap-3 px-4 py-4' : 'flex w-full max-w-2xl flex-col gap-3'}>
-      <div className={fillHeight ? 'mx-auto flex flex-1 flex-col gap-3 w-full max-w-2xl' : 'contents'}>
+    <div className={fillHeight ? 'flex flex-1 flex-col gap-3 px-6 py-4' : 'flex w-full max-w-2xl flex-col gap-3'}>
+      <div className={fillHeight ? 'flex flex-1 flex-col gap-3 w-full' : 'contents'}>
       <textarea
         className={textareaClass}
         placeholder={"Paste FIX messages here, e.g.\n8=FIX.4.2|35=D|49=SENDER|56=TARGET|..."}
