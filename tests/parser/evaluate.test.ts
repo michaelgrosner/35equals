@@ -112,11 +112,30 @@ describe('evaluateFilterTree', () => {
   it('handles absent tags correctly', () => {
     const res1 = evaluateFilterTree({ kind: 'rule', tag: 99, op: 'is empty', value: '' }, msgs);
     expect(res1).toEqual(new Uint32Array([0, 1, 2]));
-    
+
     const res2 = evaluateFilterTree({ kind: 'rule', tag: 99, op: 'equals', value: 'A' }, msgs);
     expect(res2).toEqual(new Uint32Array([]));
-    
+
+    // Negation on absent tag: tag is certainly not equal to the value, so include.
     const res3 = evaluateFilterTree({ kind: 'rule', tag: 99, op: 'not equals', value: 'A' }, msgs);
     expect(res3).toEqual(new Uint32Array([0, 1, 2]));
+  });
+
+  it('≠ on absent tag matches (consistent with not equals)', () => {
+    // Bug was: '≠' returned false for missing tags while 'not equals' returned true.
+    const res = evaluateFilterTree({ kind: 'rule', tag: 99, op: '≠', value: 'A' }, msgs);
+    expect(res).toEqual(new Uint32Array([0, 1, 2]));
+  });
+
+  it('is not one of on absent tag matches (tag is not one of any set)', () => {
+    // Bug was: 'is not one of' short-circuited to false when the tag was missing.
+    const res = evaluateFilterTree({ kind: 'rule', tag: 99, op: 'is not one of', value: ['A', 'B'] }, msgs);
+    expect(res).toEqual(new Uint32Array([0, 1, 2]));
+  });
+
+  it('is not one of excludes messages whose tag value is in the list', () => {
+    // Positive side: messages where tag 35 IS one of ['D','8'] must not appear.
+    const res = evaluateFilterTree({ kind: 'rule', tag: 35, op: 'is not one of', value: ['D', '8'] }, msgs);
+    expect(res).toEqual(new Uint32Array([]));
   });
 });

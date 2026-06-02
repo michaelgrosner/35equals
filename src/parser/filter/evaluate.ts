@@ -112,10 +112,12 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
 
   if (rule.op === 'is empty') return rawValue === undefined || rawValue === '';
   if (rule.op === 'is set') return rawValue !== undefined && rawValue !== '';
-  if (rule.op === 'not equals') return rawValue !== rule.value;
-  
+  if (rule.op === 'not equals' || rule.op === '≠') return rawValue !== rule.value;
+  if (rule.op === 'is not one of')
+    return rawValue === undefined || !(rule.value as string[]).includes(rawValue);
+
   if (rawValue === undefined) return false;
-  
+
   switch (rule.op) {
     case 'contains':
       return rawValue.includes(rule.value as string);
@@ -128,8 +130,6 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
       } catch {
         return false;
       }
-    case '≠':
-      return rawValue !== rule.value;
     case '>':
     case '≥':
     case '<':
@@ -192,8 +192,6 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
     }
     case 'is one of':
       return (rule.value as string[]).includes(rawValue);
-    case 'is not one of':
-      return !(rule.value as string[]).includes(rawValue);
     default:
       return false;
   }
