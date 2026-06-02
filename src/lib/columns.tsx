@@ -62,7 +62,7 @@ export const DEFAULT_VISIBLE_TAGS = [
 export const indexColumn = helper.display({
   id: '0',
   header: () => <ColumnSettings />,
-  cell: (info) => info.row.original.index + 1,
+  cell: (info) => info.row.original.lineNumber,
   size: 60,
   enableSorting: false,
 });

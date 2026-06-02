@@ -542,7 +542,7 @@ export function MessageGrid() {
                             }}
                             className={cn('font-mono text-muted-foreground overflow-hidden', pinnedBg)}
                           >
-                            {String(cell.row.index + 1)}
+                            {String(cell.row.original.lineNumber)}
                           </td>
                         );
                       }

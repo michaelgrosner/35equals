@@ -177,6 +177,38 @@ describe("parseMessages", () => {
   });
 
   // -------------------------------------------------------------------------
+  // lineNumber is propagated from tokenizer to ParsedMessage
+  // -------------------------------------------------------------------------
+  it("preserves lineNumber from tokenizer (one message per line)", () => {
+    const raw =
+      "8=FIX.4.2|35=0|\n" +
+      "8=FIX.4.2|35=D|\n" +
+      "8=FIX.4.2|35=8|";
+    const tokens = tokenize(raw);
+    const msgs = parseMessages(tokens, getDict);
+
+    expect(msgs).toHaveLength(3);
+    expect(msgs[0]!.lineNumber).toBe(1);
+    expect(msgs[1]!.lineNumber).toBe(2);
+    expect(msgs[2]!.lineNumber).toBe(3);
+  });
+
+  it("preserves lineNumber when messages are on non-sequential lines (log prefixes)", () => {
+    // Line 1 has no FIX message, lines 2 and 4 have messages, line 3 is blank.
+    const raw =
+      "not a fix message\n" +
+      "8=FIX.4.2|35=0|\n" +
+      "\n" +
+      "8=FIX.4.2|35=D|";
+    const tokens = tokenize(raw);
+    const msgs = parseMessages(tokens, getDict);
+
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0]!.lineNumber).toBe(2);
+    expect(msgs[1]!.lineNumber).toBe(4);
+  });
+
+  // -------------------------------------------------------------------------
   // index is set correctly for multiple messages
   // -------------------------------------------------------------------------
   it("assigns correct index to each message", () => {

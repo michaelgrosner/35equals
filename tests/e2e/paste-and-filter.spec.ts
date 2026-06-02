@@ -26,6 +26,34 @@ test("paste messages → click Parse → grid renders rows", async ({ page }) =>
   ).toBeVisible({ timeout: 3000 });
 });
 
+test("line-number column shows source line after filtering, not filtered-view position", async ({
+  page,
+}) => {
+  // Three messages on lines 1-3. Filter to keep only lines 2 and 3.
+  // The index column must show "2" and "3", not "1" and "2".
+  await page.goto("/");
+
+  await page.locator("textarea").fill(SAMPLE_MESSAGES);
+  await page.locator('button[aria-label="Parse FIX messages"]').click();
+  await expect(page.locator("text=3 messages loaded")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[role="grid"]')).toBeVisible({ timeout: 5000 });
+
+  // Regex "34=2|34=3" matches messages on lines 2 and 3 only.
+  const searchInput = page.locator('input[placeholder*="Search raw FIX"]');
+  await searchInput.fill("34=2|34=3");
+
+  // Wait for filter to settle.
+  await expect(page.locator("text=2 / 3 matches")).toBeVisible({ timeout: 3000 });
+
+  // Collect text of the first td (index column) in each data row.
+  const lineNumbers = await page
+    .locator('[role="grid"] tbody tr td:first-child')
+    .allInnerTexts();
+
+  const trimmed = lineNumbers.map((t) => t.trim()).filter((t) => t !== '');
+  expect(trimmed).toEqual(["2", "3"]);
+});
+
 test("single-message paste → click Parse → detail panel visible", async ({
   page,
 }) => {
