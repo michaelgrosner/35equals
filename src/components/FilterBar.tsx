@@ -19,8 +19,8 @@ export function FilterBar() {
   
   const applyFilter = useCallback(() => {
     if (!messages.length) return;
-    const finalTree = combineWithSearch ? tree : null;
-    const finalRegex = combineWithSearch ? globalRegex : (tree ? undefined : globalRegex);
+    const finalTree = tree;
+    const finalRegex = combineWithSearch ? globalRegex : undefined;
     
     filter(finalTree, finalRegex);
   }, [tree, globalRegex, combineWithSearch, messages.length, filter]);
