@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, Github } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { InputPanel } from '@/components/InputPanel';
 import { MessageGrid } from '@/components/MessageGrid';
@@ -114,6 +114,16 @@ export function App() {
             </PopoverContent>
           </Popover>
 
+          <a
+            href="https://github.com/michaelgrosner/35equals"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="View source on GitHub"
+            title="View source on GitHub"
+          >
+            <Github className="h-4 w-4" />
+          </a>
           <ThemeToggle />
         </div>
       </header>
