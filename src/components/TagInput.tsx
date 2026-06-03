@@ -36,8 +36,9 @@ interface Props {
 
 export function TagInput({ value, onChange, className }: Props) {
   // Local state for the text being typed (could be "MsgType" or "35")
-  const initialText = COMMON_TAGS[String(value)] 
-    ? `${COMMON_TAGS[String(value)]} ${value}` 
+  const tagName = COMMON_TAGS[String(value)];
+  const initialText = tagName
+    ? `${tagName} ${String(value)}`
     : String(value);
     
   const [text, setText] = useState(initialText);
@@ -71,7 +72,7 @@ export function TagInput({ value, onChange, className }: Props) {
     const found = options.find(o => o.name.toLowerCase() === text.toLowerCase());
     if (found) {
       onChange(found.tag);
-      setText(`${found.name} ${found.tag}`);
+      setText(`${found.name} ${String(found.tag)}`);
     }
   };
 

@@ -286,12 +286,12 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
 
               for (const item of items) {
                 if (item.kind === 'field') {
-                  rows.push(renderFieldRow(item.field, flatIdx % 2 === 0, `f-${flatIdx}`));
+                  rows.push(renderFieldRow(item.field, flatIdx % 2 === 0, `f-${String(flatIdx)}`));
                   flatIdx++;
                 } else {
                   const { countField, instances } = item;
                   const groupKey = String(countField.tag);
-                  const allCollapsed = instances.every((_, i) => collapsedInstances.has(`${groupKey}-${i}`));
+                  const allCollapsed = instances.every((_, i) => collapsedInstances.has(`${groupKey}-${String(i)}`));
 
                   // NUMINGROUP header row
                   rows.push(
@@ -307,7 +307,7 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
                               setCollapsedInstances(prev => {
                                 const next = new Set(prev);
                                 instances.forEach((_, i) => {
-                                  const k = `${groupKey}-${i}`;
+                                  const k = `${groupKey}-${String(i)}`;
                                   if (allCollapsed) next.delete(k); else next.add(k);
                                 });
                                 return next;
@@ -323,7 +323,7 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
 
                   // Instance rows
                   for (let instIdx = 0; instIdx < instances.length; instIdx++) {
-                    const instKey = `${groupKey}-${instIdx}`;
+                    const instKey = `${groupKey}-${String(instIdx)}`;
                     const isCollapsed = collapsedInstances.has(instKey);
                     const instance = instances[instIdx];
                     if (instance === undefined) continue;
@@ -348,7 +348,7 @@ export function DetailPanel({ onGetDetail }: DetailPanelProps) {
 
                     if (!isCollapsed) {
                       instance.forEach((field, fieldIdx) => {
-                        rows.push(renderFieldRow(field, fieldIdx % 2 === 0, `gf-${instKey}-${fieldIdx}`, true));
+                        rows.push(renderFieldRow(field, fieldIdx % 2 === 0, `gf-${instKey}-${String(fieldIdx)}`, true));
                       });
                     }
                   }

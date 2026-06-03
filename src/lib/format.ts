@@ -242,7 +242,7 @@ export function formatValue(
     case 'COUNTRY':
       return { text: rawValue, align: 'right' };
     case 'MULTIPLEVALUESTRING':
-    case 'MULTIPLECHARVALUE' as any:
+    case 'MULTIPLECHARVALUE':
       return { text: rawValue.split(' ').join(' · '), align: 'left' };
     default:
       return {
@@ -273,11 +273,11 @@ function formatTimestamp(raw: string): FormattedValue {
       const diffMs = now.getTime() - date.getTime();
       const diffMin = Math.floor(diffMs / 60000);
       if (Math.abs(diffMin) < 60) {
-        title = `${raw} (${Math.abs(diffMin)} min ${diffMin > 0 ? 'ago' : 'from now'})`;
+        title = `${raw} (${String(Math.abs(diffMin))} min ${diffMin > 0 ? 'ago' : 'from now'})`;
       } else {
         const diffHours = Math.floor(diffMin / 60);
         if (Math.abs(diffHours) < 24) {
-          title = `${raw} (${Math.abs(diffHours)} hours ${diffHours > 0 ? 'ago' : 'from now'})`;
+          title = `${raw} (${String(Math.abs(diffHours))} hours ${diffHours > 0 ? 'ago' : 'from now'})`;
         }
       }
     }

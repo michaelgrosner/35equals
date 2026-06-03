@@ -22,7 +22,7 @@ export function FilterBar() {
     const finalTree = tree;
     const finalRegex = combineWithSearch ? globalRegex : undefined;
     
-    filter(finalTree, finalRegex);
+    void filter(finalTree, finalRegex);
   }, [tree, globalRegex, combineWithSearch, messages.length, filter]);
 
   // '/' focuses the search input from anywhere
@@ -35,7 +35,7 @@ export function FilterBar() {
       inputRef.current?.focus();
     };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    return () => { window.removeEventListener('keydown', handler); };
   }, []);
 
   // Debounce filter application
@@ -43,7 +43,7 @@ export function FilterBar() {
     const timer = setTimeout(() => {
       applyFilter();
     }, 150);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); };
   }, [applyFilter]);
 
   const activeRuleCount = tree ? countRules(tree) : 0;
@@ -61,7 +61,7 @@ export function FilterBar() {
             placeholder="Search raw FIX (e.g. 35=D|35=8 or AAPL)"
             className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-8 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={globalRegex}
-            onChange={(e) => setGlobalRegex(e.target.value)}
+            onChange={(e) => { setGlobalRegex(e.target.value); }}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 setGlobalRegex('');
@@ -72,7 +72,7 @@ export function FilterBar() {
           />
           {globalRegex && (
             <button
-              onClick={() => setGlobalRegex("")}
+              onClick={() => { setGlobalRegex(""); }}
               className="absolute right-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
@@ -84,7 +84,7 @@ export function FilterBar() {
           variant="outline" 
           size="sm" 
           className="h-8 gap-1.5 relative"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => { setIsExpanded(!isExpanded); }}
         >
           {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           <span>Advanced</span>

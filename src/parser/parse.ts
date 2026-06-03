@@ -84,7 +84,7 @@ export function parseMessages(
   getDict?: (version: FixVersion) => DictionaryData,
 ): ParsedMessage[] {
   const n = tokens.length;
-  const results: ParsedMessage[] = new Array(n);
+  const results: ParsedMessage[] = new Array(n) as ParsedMessage[];
   let outIdx = 0;
   for (let i = 0; i < n; i++) {
     const tok = tokens[i];
@@ -146,7 +146,7 @@ function parseSingle(
   }
 
   // Field enrichment. Fast path when no dict provided.
-  const fields: ParsedField[] = new Array(pn);
+  const fields: ParsedField[] = new Array(pn) as ParsedField[];
   let msgTypeName: string | undefined;
 
   if (getDict === undefined) {

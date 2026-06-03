@@ -162,9 +162,11 @@ export function MessageGrid() {
 
   const displayedMessages = useMemo(() => {
     if (!filteredIndices) return messages;
-    const result = new Array(filteredIndices.length);
+    const result: typeof messages = [];
     for (let i = 0; i < filteredIndices.length; i++) {
-      result[i] = messages[filteredIndices[i]!];
+      const idx = filteredIndices[i] ?? 0;
+      const msg = messages[idx];
+      if (msg !== undefined) result.push(msg);
     }
     return result;
   }, [messages, filteredIndices]);
@@ -187,12 +189,14 @@ export function MessageGrid() {
     .filter((c) => c.visible)
     .map((c) => c.tag);
 
+  const tagsToRender = useMemo(
+    () => visibleTagsOrdered.length > 0 ? visibleTagsOrdered : [...DEFAULT_VISIBLE_TAGS],
+    [visibleTagsOrdered]
+  );
+
   const columnDefs: ColumnDef<GridRow>[] = [
     { ...indexColumn, size: 48 },
   ];
-
-  const tagsToRender =
-    visibleTagsOrdered.length > 0 ? visibleTagsOrdered : [...DEFAULT_VISIBLE_TAGS];
 
   for (const tag of tagsToRender) {
     if (visibilityMap.get(tag) !== false) {
@@ -286,7 +290,8 @@ export function MessageGrid() {
         case 'k': {
           e.preventDefault();
           const next = pos <= 0 ? 0 : pos - 1;
-          setSelectedIndex(currentRows[next]!.original.index);
+          const rowUp = currentRows[next];
+          if (rowUp !== undefined) setSelectedIndex(rowUp.original.index);
           parentRef.current?.focus({ preventScroll: true });
           break;
         }
@@ -294,17 +299,20 @@ export function MessageGrid() {
         case 'j': {
           e.preventDefault();
           const next = pos < 0 ? 0 : Math.min(pos + 1, currentRows.length - 1);
-          setSelectedIndex(currentRows[next]!.original.index);
+          const rowDown = currentRows[next];
+          if (rowDown !== undefined) setSelectedIndex(rowDown.original.index);
           parentRef.current?.focus({ preventScroll: true });
           break;
         }
         case 'g': {
-          setSelectedIndex(currentRows[0]!.original.index);
+          const rowFirst = currentRows[0];
+          if (rowFirst !== undefined) setSelectedIndex(rowFirst.original.index);
           parentRef.current?.focus({ preventScroll: true });
           break;
         }
         case 'G': {
-          setSelectedIndex(currentRows[currentRows.length - 1]!.original.index);
+          const rowLast = currentRows[currentRows.length - 1];
+          if (rowLast !== undefined) setSelectedIndex(rowLast.original.index);
           parentRef.current?.focus({ preventScroll: true });
           break;
         }
@@ -318,7 +326,7 @@ export function MessageGrid() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => { window.removeEventListener('keydown', handleKeyDown); };
   }, [setSelectedIndex]);
 
   useEffect(() => {

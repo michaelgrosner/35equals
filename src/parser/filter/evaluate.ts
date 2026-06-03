@@ -60,7 +60,8 @@ export function evaluateFilterTree(
   }
 
   for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i]!;
+    const msg = messages[i];
+    if (msg === undefined) continue;
     
     if (regex && !regex.test(msg.rawText)) {
       continue;
@@ -105,7 +106,7 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
   const needsValue = rule.op !== 'is empty' && rule.op !== 'is set';
   const hasValue = Array.isArray(rule.value)
     ? rule.value.length > 0
-    : rule.value !== '' && rule.value !== undefined && rule.value !== null;
+    : rule.value !== '';
   if (needsValue && !hasValue) return true;
 
   const rawValue = msg.byTag.get(rule.tag);
@@ -152,7 +153,7 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
           if (rule.op === '>' || rule.op === 'after')  return rawMs > compMs;
           if (rule.op === '≥')                          return rawMs >= compMs;
           if (rule.op === '<' || rule.op === 'before')  return rawMs < compMs;
-          if (rule.op === '≤')                          return rawMs <= compMs;
+          return rawMs <= compMs;
         }
         return false;
       }
@@ -163,7 +164,7 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
         if (limits.length !== 2) return false;
         const numVal = parseFloat(rawValue);
         if (isNaN(numVal)) return false;
-        return numVal >= parseFloat(limits[0]!) && numVal <= parseFloat(limits[1]!);
+        return numVal >= parseFloat(limits[0] ?? '') && numVal <= parseFloat(limits[1] ?? '');
       }
       const numVal = parseFloat(rawValue);
       const compStr = rule.value as string;
@@ -172,8 +173,7 @@ function evaluateRule(rule: FilterRule, msg: ParsedMessage): boolean {
         if (rule.op === '>' || rule.op === 'after')  return cmp > 0;
         if (rule.op === '≥')                          return cmp >= 0;
         if (rule.op === '<' || rule.op === 'before')  return cmp < 0;
-        if (rule.op === '≤')                          return cmp <= 0;
-        return false;
+        return cmp <= 0;
       }
       const compVal = parseFloat(compStr);
       if (rule.op === '>')  return numVal > compVal;

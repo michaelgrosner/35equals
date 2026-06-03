@@ -22,7 +22,7 @@ function deserialize(msg: TransferableMessage): ParsedMessage {
 let sharedWorker: Worker | null = null;
 let sharedApi: Comlink.Remote<WorkerApi> | null = null;
 
-function getSharedWorker() {
+function getSharedWorker(): Comlink.Remote<WorkerApi> {
   if (!sharedWorker) {
     sharedWorker = new Worker(
       new URL('./parser.worker.ts', import.meta.url),
@@ -30,7 +30,8 @@ function getSharedWorker() {
     );
     sharedApi = Comlink.wrap<WorkerApi>(sharedWorker);
   }
-  return sharedApi!;
+  if (sharedApi === null) throw new Error('Worker API not initialised');
+  return sharedApi;
 }
 
 export function useParserWorker() {

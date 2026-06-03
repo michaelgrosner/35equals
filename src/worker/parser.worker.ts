@@ -41,24 +41,33 @@ const api = {
         return [v, dict] as [FixVersion, DictionaryData];
       })
     );
-    cachedDictMap = new Map<FixVersion, DictionaryData>(entries);
+    const dictMap = new Map<FixVersion, DictionaryData>(entries);
+    cachedDictMap = dictMap;
 
-    const parsed = parseMessages(tokens, (v) => cachedDictMap!.get(v) ?? { fields: {}, msgTypes: {} });
+    const parsed = parseMessages(tokens, (v) => dictMap.get(v) ?? { fields: {}, msgTypes: {} });
     cachedMessages = parsed;
 
-    // Strip `fields` — they're expensive to clone at scale (~6 KB per message).
+    // Strip `byTag` and `fields` — expensive to clone at scale.
     // Use getDetail() to fetch fields for a single selected message instead.
-    return parsed.map((msg) => {
-      const { byTag, fields: _fields, ...rest } = msg;
-      return { ...rest, byTagEntries: Array.from(byTag.entries()) };
+    return parsed.map((msg): TransferableMessage => {
+      const base: TransferableMessage = {
+        index: msg.index,
+        lineNumber: msg.lineNumber,
+        rawText: msg.rawText,
+        version: msg.version,
+        warnings: msg.warnings,
+        byTagEntries: Array.from(msg.byTag.entries()),
+      };
+      if (msg.msgType !== undefined) base.msgType = msg.msgType;
+      return base;
     });
   },
 
-  async getDetail(rawText: string, _version: FixVersion): Promise<ParsedField[]> {
-    const dictMap = cachedDictMap ?? new Map<FixVersion, DictionaryData>();
+  getDetail(rawText: string, version: FixVersion): ParsedField[] {
+    const baseDictMap = cachedDictMap ?? new Map<FixVersion, DictionaryData>();
     const tokens = tokenize(rawText);
     if (tokens.length === 0) return [];
-    const messages = parseMessages(tokens, (v) => dictMap.get(v) ?? { fields: {}, msgTypes: {} });
+    const messages = parseMessages(tokens, (v) => baseDictMap.get(v) ?? baseDictMap.get(version) ?? { fields: {}, msgTypes: {} });
     return messages[0]?.fields ?? [];
   },
 

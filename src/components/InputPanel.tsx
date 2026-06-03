@@ -71,17 +71,17 @@ function generateSamples(): string {
   const ts = (offsetMs = 0): string => {
     const d = new Date(now.getTime() - 120000 + offsetMs);
     const pad = (n: number, w = 2) => String(n).padStart(w, '0');
-    return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}.${pad(d.getUTCMilliseconds(), 3)}`;
+    return `${String(d.getUTCFullYear())}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}.${pad(d.getUTCMilliseconds(), 3)}`;
   };
 
   const legFields = legs
     .map((l, i) =>
-      `600=${und}|608=${l.cfi}|609=${expiry}|612=${l.strike.toFixed(2)}|687=${l.qty}|624=${l.side}|566=${l.price.toFixed(2)}|654=LEG${String(i + 1).padStart(3, '0')}|`
+      `600=${und}|608=${l.cfi}|609=${expiry}|612=${l.strike.toFixed(2)}|687=${String(l.qty)}|624=${l.side}|566=${l.price.toFixed(2)}|654=LEG${String(i + 1).padStart(3, '0')}|`
     )
     .join('');
 
-  const leg0 = legs[0]!;
-  const leg1 = legs[1]!;
+  const leg0 = legs[0] ?? { cfi: '', strike: 0, side: '1' as const, qty: 0, price: 0 };
+  const leg1 = legs[1] ?? { cfi: '', strike: 0, side: '1' as const, qty: 0, price: 0 };
 
   const mlClOrdId = randId('ML');
   const mlOrdId = randId('MORD');
@@ -90,58 +90,61 @@ function generateSamples(): string {
   const sngSym = pick((['AAPL', 'MSFT', 'SPY', 'NVDA'] as const).filter(s => s !== und));
   const sngSide = pick(['1', '2'] as const);
   const sngQty = randInt(100, 500);
+  const sngQtyStr = String(sngQty);
   const sngPrice = (BASE_PRICES[sngSym] ?? 200) + (Math.random() - 0.5) * 4;
   const netPremium = Math.abs(leg0.price - leg1.price).toFixed(2);
+  const legQtyStr = String(legQty);
+  const legsLenStr = String(legs.length);
 
   let seq = 1;
   const msgs: string[] = [];
 
   // 1. NewOrderMultileg (AB)
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=250|35=AB|49=${sender}|56=${broker}|34=${seq++}|52=${ts(0)}|` +
-    `1=ACCT001|11=${mlClOrdId}|55=${und}|54=${leg0.side}|38=${legQty}|40=2|59=0|` +
-    `555=${legs.length}|${legFields}`
+    `8=FIX.4.4|9=250|35=AB|49=${sender}|56=${broker}|34=${String(seq++)}|52=${ts(0)}|` +
+    `1=ACCT001|11=${mlClOrdId}|55=${und}|54=${leg0.side}|38=${legQtyStr}|40=2|59=0|` +
+    `555=${legsLenStr}|${legFields}`
   ));
 
   // 2. ExecutionReport — Pending New
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=220|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(50, 200))}|` +
-    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQty}|` +
-    `14=0|151=${legQty}|39=A|150=A|6=0.00|555=${legs.length}|${legFields}`
+    `8=FIX.4.4|9=220|35=8|49=${broker}|56=${sender}|34=${String(seq++)}|52=${ts(randInt(50, 200))}|` +
+    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQtyStr}|` +
+    `14=0|151=${legQtyStr}|39=A|150=A|6=0.00|555=${legsLenStr}|${legFields}`
   ));
 
   // 3. ExecutionReport — New
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=220|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(200, 500))}|` +
-    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQty}|` +
-    `14=0|151=${legQty}|39=0|150=0|6=0.00|555=${legs.length}|${legFields}`
+    `8=FIX.4.4|9=220|35=8|49=${broker}|56=${sender}|34=${String(seq++)}|52=${ts(randInt(200, 500))}|` +
+    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQtyStr}|` +
+    `14=0|151=${legQtyStr}|39=0|150=0|6=0.00|555=${legsLenStr}|${legFields}`
   ));
 
   // 4. ExecutionReport — Filled
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=240|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(500, 1500))}|` +
-    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQty}|` +
-    `32=${legQty}|31=${netPremium}|14=${legQty}|151=0|39=2|150=F|6=${netPremium}|555=${legs.length}|${legFields}`
+    `8=FIX.4.4|9=240|35=8|49=${broker}|56=${sender}|34=${String(seq++)}|52=${ts(randInt(500, 1500))}|` +
+    `11=${mlClOrdId}|37=${mlOrdId}|17=${randId('EX')}|55=${und}|54=${leg0.side}|38=${legQtyStr}|` +
+    `32=${legQtyStr}|31=${netPremium}|14=${legQtyStr}|151=0|39=2|150=F|6=${netPremium}|555=${legsLenStr}|${legFields}`
   ));
 
   // 5. NewOrderSingle — equity hedge
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=148|35=D|49=${sender}|56=${broker}|34=${seq++}|52=${ts(randInt(1500, 2500))}|` +
-    `11=${sngClOrdId}|55=${sngSym}|54=${sngSide}|38=${sngQty}|44=${sngPrice.toFixed(2)}|40=2|59=0|`
+    `8=FIX.4.4|9=148|35=D|49=${sender}|56=${broker}|34=${String(seq++)}|52=${ts(randInt(1500, 2500))}|` +
+    `11=${sngClOrdId}|55=${sngSym}|54=${sngSide}|38=${sngQtyStr}|44=${sngPrice.toFixed(2)}|40=2|59=0|`
   ));
 
   // 6. ExecutionReport — New for equity
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=195|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(2500, 3500))}|` +
-    `11=${sngClOrdId}|37=${sngOrdId}|17=${randId('EX')}|55=${sngSym}|54=${sngSide}|38=${sngQty}|` +
-    `44=${sngPrice.toFixed(2)}|14=0|151=${sngQty}|39=0|150=0|6=0.00|`
+    `8=FIX.4.4|9=195|35=8|49=${broker}|56=${sender}|34=${String(seq++)}|52=${ts(randInt(2500, 3500))}|` +
+    `11=${sngClOrdId}|37=${sngOrdId}|17=${randId('EX')}|55=${sngSym}|54=${sngSide}|38=${sngQtyStr}|` +
+    `44=${sngPrice.toFixed(2)}|14=0|151=${sngQtyStr}|39=0|150=0|6=0.00|`
   ));
 
   // 7. ExecutionReport — Filled for equity
   msgs.push(fixMsg(
-    `8=FIX.4.4|9=210|35=8|49=${broker}|56=${sender}|34=${seq++}|52=${ts(randInt(3500, 5000))}|` +
-    `11=${sngClOrdId}|37=${sngOrdId}|17=${randId('EX')}|55=${sngSym}|54=${sngSide}|38=${sngQty}|` +
-    `32=${sngQty}|31=${sngPrice.toFixed(2)}|14=${sngQty}|151=0|39=2|150=F|6=${sngPrice.toFixed(2)}|`
+    `8=FIX.4.4|9=210|35=8|49=${broker}|56=${sender}|34=${String(seq++)}|52=${ts(randInt(3500, 5000))}|` +
+    `11=${sngClOrdId}|37=${sngOrdId}|17=${randId('EX')}|55=${sngSym}|54=${sngSide}|38=${sngQtyStr}|` +
+    `32=${sngQtyStr}|31=${sngPrice.toFixed(2)}|14=${sngQtyStr}|151=0|39=2|150=F|6=${sngPrice.toFixed(2)}|`
   ));
 
   return msgs.join('\n');

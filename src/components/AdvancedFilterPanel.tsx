@@ -25,19 +25,19 @@ export function AdvancedFilterPanel({ tree, onChangeTree, combineWithSearch, onC
           <Filter className="h-4 w-4 text-primary" />
           <h4 className="font-semibold text-sm text-foreground">Advanced Query Builder</h4>
         </div>
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onChangeTree(null)}>Reset rules</Button>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { onChangeTree(null); }}>Reset rules</Button>
       </div>
       
       <GroupEditor 
         group={currentTree} 
-        onChange={(g) => onChangeTree(g.children.length === 0 ? null : g)} 
+        onChange={(g) => { onChangeTree(g.children.length === 0 ? null : g); }}
       />
       
       <div className="flex items-center space-x-2 pt-2 border-t">
         <Checkbox 
           id="combine" 
           checked={combineWithSearch}
-          onCheckedChange={(c) => onChangeCombine(!!c)}
+          onCheckedChange={(c) => { onChangeCombine(!!c); }}
         />
         <label
           htmlFor="combine"
@@ -51,7 +51,7 @@ export function AdvancedFilterPanel({ tree, onChangeTree, combineWithSearch, onC
 }
 
 function GroupEditor({ group, onChange }: { group: FilterGroup, onChange: (g: FilterGroup) => void }) {
-  const setCombinator = (val: "AND" | "OR") => onChange({ ...group, combinator: val });
+  const setCombinator = (val: "AND" | "OR") => { onChange({ ...group, combinator: val }); };
   
   const updateChild = (idx: number, child: FilterTree) => {
     const newChildren = [...group.children];
@@ -97,15 +97,15 @@ function GroupEditor({ group, onChange }: { group: FilterGroup, onChange: (g: Fi
         {group.children.map((child, idx) => (
           <div key={idx} className="relative group/item">
             {child.kind === "group" ? (
-              <GroupEditor group={child} onChange={(g) => updateChild(idx, g)} />
+              <GroupEditor group={child} onChange={(g) => { updateChild(idx, g); }} />
             ) : (
-              <RuleEditor rule={child} onChange={(r) => updateChild(idx, r)} />
+              <RuleEditor rule={child} onChange={(r) => { updateChild(idx, r); }} />
             )}
             <Button 
               variant="ghost" 
               size="icon" 
               className="absolute -right-2 -top-2 h-6 w-6 opacity-0 group-hover/item:opacity-100 transition-opacity bg-background border shadow-sm hover:text-destructive"
-              onClick={() => deleteChild(idx)}
+              onClick={() => { deleteChild(idx); }}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -125,9 +125,9 @@ function GroupEditor({ group, onChange }: { group: FilterGroup, onChange: (g: Fi
 }
 
 function RuleEditor({ rule, onChange }: { rule: FilterRule, onChange: (r: FilterRule) => void }) {
-  const setTag = (tag: number) => onChange({ ...rule, tag });
-  const setOp = (val: string) => onChange({ ...rule, op: val as FilterOperator });
-  const setValue = (val: string) => onChange({ ...rule, value: val });
+  const setTag = (tag: number) => { onChange({ ...rule, tag }); };
+  const setOp = (val: string) => { onChange({ ...rule, op: val as FilterOperator }); };
+  const setValue = (val: string) => { onChange({ ...rule, value: val }); };
 
   return (
     <div className="flex items-center gap-2 bg-background border rounded p-1.5 pr-6 shadow-sm">
@@ -153,7 +153,7 @@ function RuleEditor({ rule, onChange }: { rule: FilterRule, onChange: (r: Filter
       {rule.op !== "is empty" && rule.op !== "is set" && (
         <Input 
           value={typeof rule.value === "string" ? rule.value : ""} 
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => { setValue(e.target.value); }}
           className="h-7 flex-1 text-xs"
           placeholder="Value"
         />
