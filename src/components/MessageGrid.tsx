@@ -507,10 +507,7 @@ export function MessageGrid() {
                     aria-selected={isSelected}
                     style={{ height: ROW_HEIGHT }}
                     className={cn(
-                      'cursor-pointer border-b border-border transition-colors relative',
-                      isSelected
-                        ? 'bg-primary/10 hover:bg-primary/15'
-                        : 'hover:bg-muted/50',
+                      'cursor-pointer border-b border-border relative group',
                       hasErrors && 'border-l-2 border-l-tone-rose',
                       !hasErrors && hasWarnings && 'border-l-2 border-l-tone-amber'
                     )}
@@ -529,10 +526,17 @@ export function MessageGrid() {
                         zIndex: 10,
                       } : {};
 
-                      // Pinned cells need a solid background to cover scrolling rows behind them
-                      const pinnedBg = isPinned
-                        ? (isSelected ? 'bg-primary/10' : 'bg-background')
-                        : '';
+                      // Pinned cells need an opaque background to cover scrolling content.
+                      // color-mix produces the opaque equivalent of primary/10 over background,
+                      // avoiding the double-layer compounding that occurs when both tr and td
+                      // carry a semi-transparent bg-primary/10.
+                      const rowHighlight = isPinned
+                        ? (isSelected
+                          ? 'bg-[color-mix(in_srgb,hsl(var(--primary))_10%,hsl(var(--background)))] group-hover:bg-[color-mix(in_srgb,hsl(var(--primary))_15%,hsl(var(--background)))]'
+                          : 'bg-background group-hover:bg-muted/50')
+                        : (isSelected
+                          ? 'bg-primary/10 group-hover:bg-primary/15'
+                          : 'group-hover:bg-muted/50');
 
                       if (isIndex) {
                         return (
@@ -548,7 +552,7 @@ export function MessageGrid() {
                               width: cell.column.getSize(),
                               ...pinnedStyle,
                             }}
-                            className={cn('font-mono text-muted-foreground overflow-hidden', pinnedBg)}
+                            className={cn('font-mono text-muted-foreground overflow-hidden transition-colors', rowHighlight)}
                           >
                             {String(cell.row.original.lineNumber)}
                           </td>
@@ -573,7 +577,7 @@ export function MessageGrid() {
                             width: cell.column.getSize(),
                             ...pinnedStyle,
                           }}
-                          className={cn('overflow-hidden', pinnedBg)}
+                          className={cn('overflow-hidden transition-colors', rowHighlight)}
                           title={formatted.title ?? rawValue}
                         >
                           <div className={cn("flex items-baseline gap-1.5", formatted.align === 'right' ? "justify-end" : "")}>
