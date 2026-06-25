@@ -9,7 +9,7 @@ test("paste messages → click Parse → grid renders rows", async ({ page }) =>
   await page.goto("/");
 
   await expect(
-    page.locator("header span").filter({ hasText: "FIXate" })
+    page.locator("header span").filter({ hasText: "35equals" })
   ).toBeVisible();
 
   await page.locator("textarea").fill(SAMPLE_MESSAGES);

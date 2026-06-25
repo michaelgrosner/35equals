@@ -43,6 +43,6 @@ test("column toggle persists across reload", async ({ page }) => {
   // page still renders without errors — header must still be present.
   await page.reload();
   await expect(
-    page.locator("header span").filter({ hasText: "FIXate" })
+    page.locator("header span").filter({ hasText: "35equals" })
   ).toBeVisible({ timeout: 5000 });
 });
