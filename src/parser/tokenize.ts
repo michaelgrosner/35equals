@@ -30,6 +30,7 @@ function detectDelim(input: string): DelimSpec {
   const sniff = len > 512 ? 512 : len;
   let pipeAt = -1;
   let caretAt = -1;
+  let spaceAt = -1;
   for (let i = 0; i < sniff; i++) {
     const c = input.charCodeAt(i);
     if (c === 0x01) return { ch: 0x01, isCaret: false };
@@ -38,10 +39,13 @@ function detectDelim(input: string): DelimSpec {
     } else if (c === 0x5e && caretAt < 0 && i + 1 < sniff &&
                input.charCodeAt(i + 1) === 0x41) {
       caretAt = i;
+    } else if (c === 0x20) {
+      if (spaceAt < 0) spaceAt = i;
     }
   }
   if (pipeAt >= 0) return { ch: 0x7c, isCaret: false };
   if (caretAt >= 0) return { ch: 0x5e, isCaret: true };
+  if (spaceAt >= 0) return { ch: 0x20, isCaret: false };
   // Nothing found — default to SOH (input will be treated as one segment).
   return { ch: 0x01, isCaret: false };
 }

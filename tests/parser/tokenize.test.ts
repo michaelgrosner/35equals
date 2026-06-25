@@ -55,6 +55,21 @@ describe("tokenize", () => {
   });
 
   // -------------------------------------------------------------------------
+  // Space-delimited single message
+  // -------------------------------------------------------------------------
+  it("parses a space-delimited single message", () => {
+    const raw = "8=FIX.4.2 9=263 35=8 34=547 10=089";
+    const result = tokenize(raw);
+    expect(result).toHaveLength(1);
+    const msg = result[0]!;
+    expect(msg.pairs[0]).toEqual([8, "FIX.4.2"]);
+    expect(msg.pairs[1]).toEqual([9, "263"]);
+    expect(msg.pairs[2]).toEqual([35, "8"]);
+    expect(msg.pairs[3]).toEqual([34, "547"]);
+    expect(msg.pairs[4]).toEqual([10, "089"]);
+  });
+
+  // -------------------------------------------------------------------------
   // Multi-message input (3 messages, pipe-delimited)
   // -------------------------------------------------------------------------
   it("splits three pipe-delimited messages", () => {
